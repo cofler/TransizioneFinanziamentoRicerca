@@ -239,6 +239,91 @@ dall'HERD ma dentro il bilancio.
 
 ---
 
+## 6-bis. Il retroflusso fiscale: quanto della spesa torna indietro
+
+La spesa che il modello costruisce fra il 2026 e il 2080 è **per l'83-86% monte
+stipendi** (il resto sono attrezzature). Uno stipendio pubblico è in parte una
+**partita di giro**: lo Stato lo eroga e se ne riprende subito una quota. Il modulo
+`irpef.py` la quantifica.
+
+**Da dove si parte.** I `COSTO_*` del modello sono *costo lordo ente*, non buste paga:
+contengono già contributi (32,70%) e IRAP (8,50%). La retribuzione lorda è il costo
+diviso 1,412. Dividere i costi del modello per quel fattore restituisce, uno per uno,
+i valori di CCNL — PO 92.068, PA 55.240, ricercatore 52.054, RTT 38.951, postdoc
+31.870, TA 28.329 — il che rende la scomposizione anche un **controllo dei costi
+unitari**, non solo un passaggio di calcolo.
+
+**Tre regole obbligate.**
+
+1. **Pro capite, mai sulle masse.** L'IRPEF è progressiva e convessa: applicare gli
+   scaglioni al monte stipendi, o anche solo al costo *medio* di una figura composita
+   come `docente` (PO e PA insieme), sottostima il gettito. Il motore passa a
+   `irpef.py` una lista di gruppi *omogenei*, non un totale.
+2. **L'esenzione è una categoria, non un'aliquota.** Borse di dottorato (art. 4
+   L. 476/1984), assegni di ricerca (art. 4 c.3 L. 210/1998) **e borse e incarichi di
+   ricerca post-lauream** (art. 6 c.6 L. 398/1989) sono **esenti IRPEF**: vanno
+   separati per teste, non trattati con un'aliquota media più bassa.
+3. **Le attrezzature restano fuori.** Sono acquisti, non stipendi; il loro ritorno
+   passa da IVA e imposte sui fornitori, che è un'altra stima con altre ipotesi.
+
+**I numeri** (scenario `ERA_PPP_ric`, fisco vigente tenuto fermo per 54 anni):
+
+| | 2026 | a regime (2080) |
+|---|---|---|
+| Monte stipendi lordo ente | 14,7 mld | 26,7 mld |
+| **IRPEF erariale** | **1,75 mld** | **4,41 mld** |
+| IRPEF / monte stipendi | 12,0% | 16,5% |
+| + addizionali, contributi, IRAP | 47,4% | 53,0% |
+
+**Il costo del piano al netto del rientro**, che è la lettura di policy:
+
+| | a regime, mld/**anno** | cumulato su 55 anni, mld |
+|---|---|---|
+| Maggior costo lordo rispetto al 2026 | 13,2 | 594 |
+| al netto della sola IRPEF | 10,6 | 473 (20% rientra) |
+| al netto di tutti i prelievi | 6,0 | 268 (55%) |
+
+> ⚠️ **Le due colonne non sono la stessa grandezza.** Il piano vale ~13 mld *all'anno*
+> a regime; i 594 mld sono la **somma di 55 annualità** in EUR2026 costanti, non
+> attualizzata, e crescono da zero lungo la transizione. Confrontarli con una cifra
+> annua non ha senso.
+
+**Due risultati non ovvi.**
+
+- Il ritorno fiscale cresce **più che proporzionalmente** alla spesa: l'aliquota media
+  effettiva sale dal 19,5% al 25,5%, perché il piano non aggiunge solo teste — le
+  sposta dal precariato al ruolo e alza le paghe, e l'IRPEF è progressiva.
+- **Le borse di dottorato non tornano.** A regime sono ~1,4 mld/anno completamente
+  esenti: alzare una borsa costa allo Stato quasi il doppio, in termini netti, di
+  alzare uno stipendio dello stesso importo lordo. È l'unica voce del piano con
+  retroflusso IRPEF nullo.
+
+**L'incertezza più grande, e perché conta meno del previsto.** Il MUR separa solo
+25.113 delle 43.395 posizioni postdoc dello stato iniziale (RTD-A 9.222 tassati +
+assegni 15.891 esenti); delle altre 18.282 — co.co.co, borsisti, contratti di ricerca
+— non si sa quante siano borse o incarichi di ricerca, cioè esenti. La quota esente sta
+quindi fra 0,366 e 0,787, e il default 0,633 assume che le figure non separate abbiano
+lo stesso mix di quelle osservabili (`--quota-esente-postdoc` per gli altri due
+estremi). L'effetto sul gettito però è piccolo: un postdoc tassato paga 3.995 EUR di
+IRPEF, quindi esentarne 18.000 in più sposta il 2026 di 0,07 mld e il cumulato di 0,3
+mld su 217. Torna a contare solo nell'ipotesi che borse e incarichi **sopravvivano**
+alla riforma invece di essere assorbiti nei contratti di ricerca
+(`QUOTA_ESENTE_PREC_UNI_TGT`, oggi a 0).
+
+Una precisazione su cosa la quota corregge: il modello tiene `COSTO['precari']` piatto
+a 45.000 per tutti, quindi la quota esente cambia il **regime fiscale** delle teste,
+non il loro prezzo. Un assegno ne costava 22.700 — il che è anche il segnale che i
+45.000 sono il costo del punto di *arrivo* della transizione, non della media di
+partenza. È una questione del ramo costi, non del fisco.
+
+**Cosa NON è.** Non è un moltiplicatore: nessun indotto, nessuna IVA sui consumi,
+nessun effetto di comportamento. È il prelievo meccanico su buste paga che lo Stato
+sta già pagando, cioè un **limite inferiore** del ritorno. E le addizionali e l'IRAP
+vanno a Regioni e Comuni: chi ragiona sul bilancio dello Stato in senso stretto deve
+guardare la sola colonna IRPEF, che è tenuta separata apposta.
+
+---
+
 ## 7. La dinamica: transizione e ricircolo dei precari
 
 Il modello non è solo un conto a regime: **simula il percorso anno per anno** con un
@@ -407,6 +492,7 @@ paghe odierne, ERA a parità PPP), il grafico `transizione_fte.png` e i CSV
 | File | Contenuto |
 |---|---|
 | `piano_fte_transizione.py` | **Modello dinamico** (formulazione corrente): transizione stock-flow, ricircolo precari, CLI |
+| `irpef.py` | **Retroflusso fiscale**: dal costo lordo ente alla busta paga e all'IRPEF, pro capite (vedi §6-bis) |
 | `piano_fte_consolidato.py` | Modello statico a due leve + frontiera iso-HERD (formulazione-madre) |
 | `piano_redefinito.py` | Prima formulazione a obiettivi fissi (densità + stipendio → residuo) |
 | `transizione_fte.png` | Grafico dell'evoluzione (densità e budget nel tempo) |
