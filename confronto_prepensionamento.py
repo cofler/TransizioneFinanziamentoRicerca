@@ -76,7 +76,8 @@ def _serie(scenario: str, ades: float, sigma: float, anni: tuple[int, ...],
     """Una simulazione per ogni anticipo, piu' la baseline a leva spenta.
 
     La calibrazione va rifatta esattamente come in main() del modello, e NELLO STESSO
-    ORDINE: gli stock di partenza, poi il TA, poi lambda (che dipende dal TA), poi il
+    ORDINE: gli stock di partenza, poi il TA, poi la soglia PA->PO (il costo dei
+    professori entra nell'HERD ricostruito), poi lambda (che dipende dal TA), poi il
     supporto (residuo su lambda), poi l'overhead EPR (che dipende dal supporto).
     Sono residui, non costanti: saltarne uno o invertirli non da' un errore, da'
     silenziosamente uno scenario diverso da quello che stampa il modello."""
@@ -86,6 +87,7 @@ def _serie(scenario: str, ades: float, sigma: float, anni: tuple[int, ...],
     C.TA_UNI_OGGI = C.TA_UNI_RATIO * C.FTE_OGGI
     C.TA_EPR_OGGI = C.TA_EPR_RATIO * C.EPR_RICERC_OGGI * C.ALPHA_EPR
     C.STUDENTI_OGGI = C.STUD_DOC_OGGI * MO._fte_didattico(MO._init_stato(0.0))
+    C.ANNI_DA_ASSOCIATO = CAL._calibra_anni_da_associato()
     C.LAMBDA_HE = CAL._calibra_lambda_he()
     C.SUPPORTO = CAL._calibra_supporto()
     C.OVH_EPR_SUPP, C.OVH_EPR_ATTR = CAL._calibra_overhead_epr()

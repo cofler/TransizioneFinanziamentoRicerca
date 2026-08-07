@@ -23,6 +23,7 @@ import matplotlib.pyplot as plt
 
 import config as C
 from motore import _teste_tot
+from regime import anni_da_associato_tgt
 
 # ============================ REPORT 2026-2050 ==============================
 # Palette: primi tre slot della palette di riferimento (validati all-pairs).
@@ -45,27 +46,59 @@ INK, INK2, MUTED, GRID = "#0b0b0b", "#52514e", "#898781", "#e1e0d9"
 # univ. a 10.9 e Ricercatori EPR / RTT a 12.4, sotto la soglia categoriale di 15 - che
 # una rampa a una tinta non puo' rispettare per costruzione. Per questo ogni fascia
 # porta l'etichetta scritta dentro: l'identità non è mai solo-colore.
-STACK = [("phd_teste",       "Dottorandi",          "#3f2560"),   # viola = università
-         ("postdoc_teste",   "Postdoc univ.",       "#623f88"),
-         ("epr_precari",     "Postdoc EPR",         "#720a3b"),   # cremisi = EPR
-         ("rtt_teste",       "RTT",                 "#825ba9"),
-         ("epr_ruolo",       "Ricercatori EPR",     "#ae3970"),
-         ("ric_uni_teste",   "Ricercatori univ.",   "#a17ec6"),
-         ("prof_teste",      "Professori (PO/PA)",  "#c0a3da")]
+#
+# I PROFESSORI SONO DUE FASCE, non una: associati e ordinari. Il passo in più si
+# aggiunge IN CIMA alla rampa e non la ricalibra - gli associati tengono il colore che
+# la fascia unica aveva prima (#c0a3da), quindi tutte le coppie preesistenti restano
+# quelle già validate, e la sola coppia nuova è associati/ordinari. Verificata come le
+# altre: ΔE2000 12.3 a vista normale, 9.1 in deutan e 9.8 in protan, sopra la soglia di
+# 8 che vale per le coppie adiacenti di una rampa a una tinta. Gli ordinari sono il
+# passo più chiaro (L* 85.6) ma non confinano con la pagina: sopra di loro corre sempre
+# la linea di totale, che porta il colore dello scenario.
+STACK = [("phd_teste",       "Dottorandi",            "#3f2560"),  # viola = università
+         ("postdoc_teste",   "Postdoc univ.",         "#623f88"),
+         ("epr_precari",     "Postdoc EPR",           "#720a3b"),  # cremisi = EPR
+         ("rtt_teste",       "RTT",                   "#825ba9"),
+         ("epr_ruolo",       "Ricercatori EPR",       "#ae3970"),
+         ("ric_uni_teste",   "Ricercatori univ.",     "#a17ec6"),
+         ("pa_teste",        "Professori associati",  "#c0a3da"),
+         ("po_teste",        "Professori ordinari",   "#e0d0f0")]
 
-# Grafico di spesa: DUE ENTITà CATEGORIALI (rami di bilancio), non stadi ordinati,
-# quindi due tinte e non una rampa. Palette distinta da STACK perchè l'oggetto è
+# Grafico di spesa: ENTITà CATEGORIALI (voci di bilancio), non stadi ordinati,
+# quindi tinte distinte e non una rampa. Palette distinta da STACK perchè l'oggetto è
 # diverso: li' sono persone, qui sono euro.
-# Verificato sulle coppie che si TOCCANO nel disegno: i due riempimenti fra loro stanno
-# a ΔE 17.1 a vista normale e 14.5 in CVD; la linea di totale (colore dello scenario)
-# contro la fascia EPR che le sta sotto, 21.8 col verde, 27.0 col blu, 27.9 con
-# l'arancio. Il test all-pairs segnala il verde di PAL contro il verde università
-# (8.5), ma quelle due marche non sono mai adiacenti: l'università è la fascia in
-# basso, la linea di totale sta in cima, separate dall'intera banda EPR.
+# Verificato sulle coppie che si TOCCANO nel disegno: i due riempimenti VERDI fra loro
+# stanno a ΔE 17.1 a vista normale e 14.5 in CVD; la linea di totale (colore dello
+# scenario) contro la fascia che le sta sotto - che ora è la prugna, non più la fascia
+# EPR - 34.2 col verde, 19.9 col blu, 27.6 con l'arancio, e in CVD 22.2 / 12.2 / 25.2.
+# Il test all-pairs segnala il verde di PAL contro il verde università (8.5), ma quelle
+# due marche non sono mai adiacenti: l'università è la fascia in basso, la linea di
+# totale sta in cima, separate dalle altre due bande.
+#
+# LA TERZA FASCIA NON È UN TERZO RAMO DI BILANCIO, ed è per questo che esce dalla
+# famiglia verde: i due verdi dicono CHI spende (università, enti), la prugna dice
+# COSA si compra - attrezzature invece che stipendi - ed è una spesa che il piano
+# decide, non che l'organico impone (vedi PIANO ATTREZZATURE in config). Una terza
+# tinta di verde avrebbe detto "terzo ente", che è esattamente la lettura sbagliata.
+# Sta IN CIMA perchè è il residuo: le due fasce sotto sono determinate dall'organico
+# dell'anno, questa è ciò che resta da riempire per arrivare all'inviluppo.
+# Prugna e non un'altra tinta perchè i vincoli lasciano poco: deve stare a ΔE>=15 da
+# entrambi i verdi, dal verde acqua dell'IRPEF e dai TRE colori di scenario, che
+# occupano già blu, arancio e verde. Il quadrante viola/magenta è quel che avanza.
+# Coppie verificate (normale / CVD peggiore): fascia EPR 25.2 / 16.4, fascia
+# università 35.7 / 22.5, IRPEF 37.0 / 26.5, e le tre linee di scenario qui sopra.
+# Contro pagina il contrasto è 6.9:1, quindi l'inchiostro dentro la fascia è chiaro.
 # Quarto campo: la stessa dizione per esteso, ma mandata a capo, per la scrittura
 # DENTRO la fascia. Su una riga non entrerebbe nella finestra piatta disponibile.
-SPESA = [("dStato_univ_mld", "Università (uscita)", "#249F2F", " "),
-         ("dStato_epr_mld",  "Enti pubblici di ricerca (uscita)", "#4f6410",
+# Le due fasce di ramo sono le colonne *_pers_mld, cioè AL NETTO del supplemento: il
+# supplemento è già dentro dStato_univ_mld e dStato_epr_mld (piano_attrezzature lo
+# ripartisce fra i due rami, perchè è spesa R&S e deve stare in HERD e GOVERD), e
+# usare quelle qui lo conterebbe due volte - una dentro il verde, una nella prugna.
+# Le tre fasce si sommano quindi esattamente a dStato_tot_mld.
+SPESA = [("dStato_univ_pers_mld", "Università (uscita)", "#249F2F", " "),
+         ("dStato_epr_pers_mld",  "Enti pubblici di ricerca (uscita)", "#4f6410",
+          " "),
+         ("attrezz_extra_mld", "Attrezzature e infrastrutture (uscita)", "#853a8c",
           " ")]
 
 # Terza fascia: l'IRPEF che quegli stipendi riversano. Disegnata SOTTO LO ZERO, con
@@ -97,7 +130,12 @@ def grafico_trend(dfs: dict[str, pd.DataFrame], fine: int, path: str,
             ("ruolo_teste", "Personale di ruolo, PO/PA + ric. (teste)"),
             ("postdoc_teste", "Postdoc università (teste)"),
             ("rtt_teste", "RTT (teste)"),
-            ("phd_fuori_accademia", "Dottori/anno fuori accademia (eccedenza)"),
+            # gli sbocchi dei dottori come QUOTE del flusso dell'anno, non come teste:
+            # il numero assoluto di eccedenti dipende dalla taglia del dottorato, la
+            # quota no, e la quota è quello che si confronta fra scenari. Due serie in
+            # un pannello solo: hanno lo stesso denominatore, e la distanza fra le due
+            # è la parte di flusso che resta nel precariato senza arrivare al ruolo.
+            ("quota_phd_postdoc", "Sbocchi dei dottori (quota del flusso annuo)"),
             ("epr_ruolo", "EPR di ruolo (teste)"),
             ("W_paghe", "Moltiplicatore paghe W"),
             ("HERD_%PIL", "HERD (% PIL)"),
@@ -110,24 +148,68 @@ def grafico_trend(dfs: dict[str, pd.DataFrame], fine: int, path: str,
             # quinta riga: il lato DIDATTICA. Le stesse persone dei pannelli sopra,
             # pesate col complemento della quota-ricerca invece che con la quota-ricerca.
             ("fte_didattico", "Docenti (FTE didattici)"),
-            ("stud_per_doc", "Studenti per docente (FTE)")]
-    fig, axes = plt.subplots(5, 3, figsize=(13.5, 17.2), facecolor="#fcfcfb")
+            ("stud_per_doc", "Studenti per docente (FTE)"),
+            # ultimo slot della griglia: il rapporto che dice se il piano stabilizza
+            # davvero. Sta qui e non fra i pannelli di organico perchè non è un
+            # conteggio ma un RAPPORTO, e si legge contro il 100 - non contro lo zero.
+            # titolo tenuto CORTO di proposito: questo è l'ultimo pannello a destra e
+            # il titolo è ancorato a sinistra, quindi tutto ciò che supera la larghezza
+            # del pannello esce dalla figura invece di andare a capo. Il limite pratico
+            # è ~53 caratteri; il denominatore ci sta, la definizione completa no e sta
+            # nel commento alla colonna in motore.py.
+            ("componente_precaria",
+             "Componente precaria (% su strutturati + postdoc)"),
+            # sesta riga: la spesa che NON è personale. Sta fra i pannelli di trend e
+            # non solo nello stack di spesa perchè è una quota e le quote si leggono
+            # come serie, non come spessore di una fascia dentro un totale che cresce.
+            # Orizzonte più corto degli altri (vedi ATTREZZ_QUOTA_FINE in config).
+            ("quota_attrezz", "Attrezzature e infrastrutture (% della spesa)")]
+    # su un DataFrame che non è passato da piano_attrezzature() la colonna della quota
+    # non c'è: il pannello sparisce e la griglia si accorcia da sola, invece di
+    # sollevare un KeyError a metà disegno
+    pann = [p for p in pann if all(p[0] in df.columns for df in dfs.values())]
+    # la griglia si dimensiona sui pannelli: 3 colonne e quante righe servono. Con 16
+    # pannelli sono 6 righe, l'ultima con due caselle vuote che il ciclo in coda spegne.
+    nrig = -(-len(pann) // 3)
+    fig, axes = plt.subplots(nrig, 3, figsize=(13.5, 3.44 * nrig), facecolor="#fcfcfb")
     for ax, (col, tit) in zip(axes.ravel(), pann):
+        # non tutti i pannelli arrivano a fine orizzonte: la quota-attrezzature si
+        # ferma prima, perchè oltre quell'anno è il prolungamento piatto dell'inviluppo
+        fine_p = min(fine, C.ATTREZZ_QUOTA_FINE) if col == "quota_attrezz" else fine
         # spessore decrescente: dove le serie COINCIDONO (EPR, W) restano tutte
         # visibili come bande concentriche invece di nascondersi a vicenda
         for sp, (nome, df) in zip((3.4, 2.2, 1.3), dfs.items()):
-            d = df[df["anno"] <= fine]
+            d = df[df["anno"] <= fine_p]
             ax.plot(d["anno"], d[col], lw=sp, color=PAL[nome],
                     label=nome.replace("_", " "), solid_capstyle="round")
-        # la nota "identico" ha senso solo se ci sono più scenari da confrontare
+            # seconda serie nello stesso pannello: la quota che arriva alla tenure
+            # track. Stesso colore (è lo stesso scenario) e tratto spezzato, come nel
+            # pannello del fabbisogno netto: a distinguerle è lo stile, non la tinta.
+            if col == "quota_phd_postdoc":
+                ax.plot(d["anno"], d["quota_phd_rtt"], lw=sp * 0.62, color=PAL[nome],
+                        ls=(0, (4, 2.2)), solid_capstyle="round")
+        # la nota "identico" ha senso solo se ci sono più scenari da confrontare, e
+        # deve guardare TUTTE le serie del pannello: dove ce ne sono due, una sola
+        # coincidente non rende identico il disegno
+        cols = [col] + (["quota_phd_rtt"] if col == "quota_phd_postdoc" else [])
         coincide = len(dfs) > 1 and all(
-            np.allclose(df[df["anno"] <= fine][col],
-                        list(dfs.values())[0][lambda x: x["anno"] <= fine][col])
-            for df in dfs.values())
+            np.allclose(df[df["anno"] <= fine_p][c],
+                        list(dfs.values())[0][lambda x: x["anno"] <= fine_p][c])
+            for df in dfs.values() for c in cols)
         ax.set_title(tit + (f"  (identico nei {len(dfs)} scenari)" if coincide else ""),
                      fontsize=10, color=INK, loc="left", pad=8)
         ax.yaxis.set_major_formatter(
             plt.FuncFormatter(lambda v, _: f"{v:,.0f}" if abs(v) >= 1000 else f"{v:g}"))
+        if col == "quota_phd_postdoc":
+            # quote: l'asse va in percentuale, e il pannello porta la sua legenda di
+            # STILE - il colore qui dice lo scenario, come ovunque, quindi la coppia
+            # di serie non puo' che distinguersi col tratto
+            ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:.0%}"))
+            ax.legend(handles=[plt.Line2D([], [], color=MUTED, lw=2.4,
+                                          label="restano come postdoc (univ.+EPR)"),
+                               plt.Line2D([], [], color=MUTED, lw=1.6, ls=(0, (4, 2.2)),
+                                          label="entrano in tenure track (RTT+Madia)")],
+                      fontsize=8, frameon=False, labelcolor=INK2, loc="upper right")
         if col == "GOVERD_%PIL":                    # riferimento: obiettivo dichiarato
             ax.axhline(C.GOVERD_TGT, lw=1.2, ls=(0, (4, 3)), color=MUTED)
             ax.annotate(f"obiettivo {C.GOVERD_TGT:g}%", (C.ANNO0 + 1, C.GOVERD_TGT),
@@ -143,6 +225,54 @@ def grafico_trend(dfs: dict[str, pd.DataFrame], fine: int, path: str,
             ax.annotate(f"obiettivo ERA {C.HERD_TGT:g}%", (C.ANNO0 + 1, C.HERD_TGT),
                         textcoords="offset points", xytext=(0, -11),
                         fontsize=8, color=INK2)
+        if col == "quota_ta":
+            # asse in percentuale, come per l'altro pannello di quote: qui il riquadro
+            # scrive dei valori in %, e una tacca che dicesse 0,21 accanto a un testo che
+            # dice 21% farebbe leggere due unità diverse per la stessa grandezza
+            ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:.0%}"))
+            # estremi della simulazione scritti per esteso. La curva è quasi piatta -
+            # a TA_ELAST=1 lo è per costruzione, e il movimento residuo è solo
+            # composizione università/EPR - quindi la distanza fra i due capi non si
+            # legge dall'asse: va scritta. Una riga per scenario, una sola se
+            # coincidono (stesso criterio della nota nel titolo).
+            serie = {n: df[df["anno"] <= fine_p][["anno", col]] for n, df in dfs.items()}
+            if coincide:
+                serie = dict([next(iter(serie.items()))])
+            righe = [
+                f"{int(d['anno'].iloc[0])}: {d[col].iloc[0]:.1%}"
+                f"   →   {int(d['anno'].iloc[-1])}: {d[col].iloc[-1]:.1%}"
+                + ("" if len(serie) == 1 else f"   ({n.replace('_', ' ')})")
+                for n, d in serie.items()]
+            # in basso a sinistra: con la baseline a zero e la serie intorno al 20% la
+            # metà inferiore del pannello è sempre vuota, qualunque scenario
+            ax.text(0.03, 0.05, "\n".join(righe), transform=ax.transAxes,
+                    fontsize=8.5, color=INK2, ha="left", va="bottom", linespacing=1.5,
+                    bbox=dict(boxstyle="round,pad=0.34", facecolor="#fcfcfb",
+                              edgecolor="#c3c2b7", linewidth=0.7, alpha=0.92))
+        if col == "quota_attrezz":
+            # asse in percentuale come gli altri due pannelli di quote
+            ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:.0%}"))
+            # la quota di PARTENZA, cioè quella che il modello calibra sul 2026: è il
+            # metro di tutto il pannello - la curva si legge come "quanto il piano si
+            # allontana da com'è spesa oggi la ricerca pubblica" - e senza la riga
+            # bisognerebbe andarsela a cercare sul primo punto della serie.
+            q0 = list(dfs.values())[0][col].iloc[0]
+            ax.axhline(q0, lw=1.2, ls=(0, (4, 3)), color=MUTED)
+            ax.annotate(f"quota {C.ANNO0}: {q0:.0%}", (C.ANNO0 + 1, q0),
+                        textcoords="offset points", xytext=(0, -11),
+                        fontsize=8, color=INK2)
+            # i due ancoraggi dell'inviluppo: da qui in poi la curva non è più solo
+            # il modello, è la regola di piano. Scritti come tacche sull'asse dei
+            # tempi e non come annotazioni, per non aggiungere inchiostro dentro il
+            # pannello dove passano le tre serie.
+            ax.set_xticks(sorted({C.ANNO0, C.ATTREZZ_PICCO_1, C.ATTREZZ_PICCO_2,
+                                  fine_p}))
+        # NB: il pannello della componente precaria non porta riga di riferimento, a
+        # differenza degli altri. Il riferimento naturale sarebbe il 100% - un postdoc
+        # per strutturato -
+        # ma la serie parte da 62 e scende, quindi quella riga non verrebbe mai
+        # sfiorata e allungherebbe l'asse fino a 100 sprecando meta' pannello. Un
+        # riferimento che nessuna curva avvicina non aiuta a leggere, arreda.
         ax.grid(True, lw=0.6, color=GRID)
         ax.set_axisbelow(True)
         ax.tick_params(labelsize=8, colors=MUTED, length=0)
@@ -151,8 +281,9 @@ def grafico_trend(dfs: dict[str, pd.DataFrame], fine: int, path: str,
         for lato in ("left", "bottom"):
             ax.spines[lato].set_color("#c3c2b7")
         if col in ("densita", "ruolo_teste", "postdoc_teste", "rtt_teste",
-                   "phd_fuori_accademia", "epr_ruolo", "phd_teste", "ta_fte",
-                   "quota_ta", "densita_rs_tot", "fte_didattico", "stud_per_doc"):
+                   "quota_phd_postdoc", "epr_ruolo", "phd_teste", "ta_fte",
+                   "quota_ta", "densita_rs_tot", "fte_didattico", "stud_per_doc",
+                   "componente_precaria", "quota_attrezz"):
             ax.set_ylim(bottom=0)      # conteggi di persone: baseline sempre a zero
         ax.set_facecolor("#fcfcfb")
     # la griglia ha più caselle dei pannelli: quelle in eccesso vanno spente, altrimenti
@@ -347,7 +478,9 @@ def grafico_stack(dfs: dict[str, pd.DataFrame], fine: int, path: str,
     e la luminosità lo stadio dentro il settore.
     La linea di totale in cima allo stack porta il colore che lo scenario ha in tutti
     gli altri grafici; la tratteggiata grafite è la densità FTE/100k sull'asse
-    destro."""
+    destro.
+    I professori sono DUE fasce, ordinari e associati, e vengono dal motore già
+    separate dalla soglia di anzianità: la loro proporzione cambia nel tempo."""
     etich = etich or {n: n.replace("_", " ") for n in dfs}
     # con un solo pannello la larghezza minima è dettata dalla legenda, non dal grafico
     fig, axes = plt.subplots(1, len(dfs), figsize=(max(9.0, 5.2 * len(dfs)), 5.4),
@@ -357,9 +490,10 @@ def grafico_stack(dfs: dict[str, pd.DataFrame], fine: int, path: str,
     ytop = max(_teste_tot(df[df["anno"] <= fine]).max() for df in dfs.values()) * 1.06
     for ax, (nome, df) in zip(np.atleast_1d(axes), dfs.items()):
         d = df[df["anno"] <= fine].copy()
-        # 'docentè nel modello è la coorte PO/PA; i ricercatori universitari sono
-        # una coorte distinta di ruolo, quindi vanno scorporati per non contarli due volte.
-        d["prof_teste"] = d["ruolo_teste"] - d["ric_uni_teste"]
+        # 'po_teste' e 'pa_teste' arrivano GIÀ SPEZZATE dal motore, che applica la
+        # soglia di anzianità alla coorte per età: qui non si ripartisce nulla. Il
+        # rapporto fra le due fasce si muove nel tempo, e il suo movimento è
+        # informazione - è l'organico che ringiovanisce e poi reinvecchia.
         # la fascia ricercatori compare SOLO negli scenari che prevedono la figura
         voci = [(c, lab, col) for c, lab, col in STACK if d[c].max() > 1.0]
         y = np.vstack([d[c].to_numpy() for c, _, _ in voci])
@@ -381,7 +515,7 @@ def grafico_stack(dfs: dict[str, pd.DataFrame], fine: int, path: str,
             _scrivi_in_fascia(ax, lab,
                               posa or _posa_ripiego(anni, basso[k], cum[k], len(lab)),
                               col, sborda=posa is None)
-        ax.set_title(etich[nome], fontsize=10, color=INK, loc="left", pad=8)
+        #ax.set_title(etich[nome], fontsize=10, color=INK, loc="left", pad=8)
         ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:,.0f}"))
         ax.grid(True, axis="y", lw=0.6, color=GRID)
         ax.set_axisbelow(True)
@@ -430,34 +564,68 @@ def grafico_stack(dfs: dict[str, pd.DataFrame], fine: int, path: str,
     # su una figura strettta (un pannello solo) il sottotitolo va su due righe, altrimenti
     # esce dal bordo destro
     stretta = fig.get_figwidth() < 12
-    fig.text(0.006, 0.95, "Viola = università (spesa HERD), cremisi = enti pubblici di "
-             "ricerca (spesa GOVERD);"
-             + ("\n" if stretta else " ")
-             + "le fasce sono ordinate per stadio di carriera. La linea in cima allo "
-               "stack è il totale.",
-             fontsize=8.5, color=INK2, ha="left", va="top", linespacing=1.4)
-    fig.tight_layout(rect=(0, 0.055, 1, 0.90 if stretta else 0.92))
+    # la seconda riga dice su quale regola poggia lo split PO/PA. Serve: la quota si
+    # muove nel disegno, e chi legge deve sapere che a muoverla è l'età della coorte e
+    # non un'ipotesi sui concorsi. Sta nel sottotitolo e non in una nota a piè di
+    # figura perchè va letta insieme al disegno, non dopo.
+    # a soglia non calibrata il motore ricade sul mix congelato, e il sottotitolo deve
+    # dire quello: promettere una regola di anzianità che non è stata applicata
+    # sarebbe peggio che non dire nulla.
+    regola = (f"Si diventa ordinari per anzianità: {C.ANNI_DA_ASSOCIATO:.1f} anni di "
+              f"ruolo nel {C.ANNO0} (= il {C.QUOTA_PO:.0%} di ordinari osservato nel "
+              f"2023), {anni_da_associato_tgt():.0f} a fine rampa (= "
+              f"{C.QUOTA_PO_TGT:.0%} a regime)."
+              if C.ANNI_DA_ASSOCIATO is not None else
+              f"Ordinari e associati ripartiti a quota fissa {C.QUOTA_PO:.0%}/"
+              f"{1 - C.QUOTA_PO:.0%} (MUR 2023): soglia di anzianità non calibrata.")
+    fig.tight_layout(rect=(0, 0.055, 1, 0.865 if stretta else 0.895))
     fig.savefig(path, dpi=140, facecolor="#fcfcfb")
     plt.close(fig)
 
 
 def grafico_spesa_stack(dfs: dict[str, pd.DataFrame], fine: int, path: str,
                         etich: dict[str, str] | None = None) -> None:
-    """VARIAZIONE della spesa pubblica per la ricerca rispetto al 2026, con i due rami
-    di bilancio impilati: università e EPR. Parte da zero per costruzione - il livello
-    assoluto della baseline 2026 resta fuori dal grafico.
+    """VARIAZIONE della spesa pubblica per la ricerca rispetto al 2026, con le voci di
+    bilancio impilate: università, EPR e attrezzature. Parte da zero per costruzione -
+    il livello assoluto della baseline 2026 resta fuori dal grafico.
     (I livelli assoluti sono comunque nei CSV, colonne budget_univ_mld e
     budget_epr_mld, se serve rimetterli.)
+
+    La terza fascia è l'INVILUPPO: la spesa che le due fasce sotto liberano quando
+    l'organico si sgonfia e che il piano tiene alla ricerca sotto forma di
+    attrezzature, invece di lasciarla scendere. È il motivo per cui il totale qui non
+    cala mai dopo il 2055. Vedi piano_attrezzature() in motore.
+    Le due fasce di ramo sono AL NETTO del supplemento (colonne *_pers_mld): quello è
+    già ripartito fra i due rami dentro dStato_univ_mld e dStato_epr_mld, che è ciò
+    che disegna grafico_ffo - i due grafici mostrano quindi lo stesso totale, spezzato
+    una volta per RAMO e una volta per NATURA della spesa.
 
     Sotto lo zero, in negativo, l'IRPEF che quegli stipendi riversano: è un flusso di
     segno opposto e sta dalla parte opposta dell'asse. Il grafico si legge allora come
     un saldo - lordo sopra, rientro sotto, netto la differenza - e il netto è anche
-    disegnato, come tratteggio dentro lo stack. Vedi SPESA_IRPEF per il perchè."""
+    disegnato, come tratteggio dentro lo stack. Vedi SPESA_IRPEF per il perchè.
+    L'IRPEF NON si muove con la terza fascia: le attrezzature non sono stipendi e non
+    pagano imposta sul reddito, quindi ogni euro di quella fascia entra nel netto per
+    intero."""
     etich = etich or {n: n.replace("_", " ") for n in dfs}
     fig, axes = plt.subplots(1, len(dfs), figsize=(max(8.6, 5.0 * len(dfs)), 5.0),
                              facecolor="#fcfcfb", sharey=True)
-    ytop = max((df[df["anno"] <= fine][[c for c, _, _, _ in SPESA]].sum(axis=1)).max()
-               for df in dfs.values()) * 1.10
+    # su un DataFrame che non è passato da piano_attrezzature() non ci sono nè la
+    # fascia delle attrezzature nè le colonne di ramo al netto del supplemento: si
+    # ricade sulle due fasce di prima, lette dalle colonne piene
+    if all("attrezz_extra_mld" in df.columns for df in dfs.values()):
+        voci = SPESA
+    else:
+        voci = [("dStato_univ_mld", *SPESA[0][1:]), ("dStato_epr_mld", *SPESA[1][1:])]
+    # 18% di aria sopra il massimo invece del 10% QUANDO c'è l'inviluppo: lì il totale
+    # ARRIVA al suo massimo e ci resta, quindi l'etichetta "Lordo", che sta 20 punti
+    # sopra la fine della curva, cadrebbe fuori dal pannello col margine di prima. Con
+    # le due sole fasce di personale il totale a fine periodo sta ben sotto il picco e
+    # il problema non si pone: lì il margine resta quello originale, altrimenti la
+    # figura si allungherebbe senza motivo.
+    aria = 1.18 if len(voci) > 2 else 1.10
+    ytop = max((df[df["anno"] <= fine][[c for c, _, _, _ in voci]].sum(axis=1)).max()
+               for df in dfs.values()) * aria
     # margine sotto lo zero: il 35% in più del rientro massimo, che è lo spazio per
     # scriverci dentro l'etichetta senza che tocchi il bordo inferiore
     ybot = -max(df[df["anno"] <= fine][SPESA_IRPEF[0]].max()
@@ -465,13 +633,13 @@ def grafico_spesa_stack(dfs: dict[str, pd.DataFrame], fine: int, path: str,
     span = ytop - ybot
     for ax, (nome, df) in zip(np.atleast_1d(axes), dfs.items()):
         d = df[df["anno"] <= fine]
-        y = np.vstack([d[c].to_numpy() for c, _, _, _ in SPESA])
+        y = np.vstack([d[c].to_numpy() for c, _, _, _ in voci])
         cum = np.cumsum(y, axis=0)
         # il rientro non è mai negativo per costruzione, ma il clip lo garantisce anche
         # se il fisco cambiasse segno in qualche configurazione di parametri
         irp = np.clip(d[SPESA_IRPEF[0]].to_numpy(), 0.0, None)
-        ax.stackplot(d["anno"], y, colors=[col for _, _, col, _ in SPESA],
-                     labels=[lab for _, lab, _, _ in SPESA],
+        ax.stackplot(d["anno"], y, colors=[col for _, _, col, _ in voci],
+                     labels=[lab for _, lab, _, _ in voci],
                      edgecolor="#fcfcfb", linewidth=0.9)
         ax.fill_between(d["anno"], 0.0, -irp, color=SPESA_IRPEF[2],
                         label=SPESA_IRPEF[1], edgecolor="#fcfcfb", linewidth=0.9)
@@ -492,8 +660,24 @@ def grafico_spesa_stack(dfs: dict[str, pd.DataFrame], fine: int, path: str,
         # i valori portano inchiostro di testo, non il colore della serie - tranne
         # quelli del retroflusso, che sono l'eccezione perchè lì il colore È l'etichetta
         ax.annotate(f"Lordo +{cum[-1][-1]:.1f} Mld EUR", (d["anno"].iloc[-1], cum[-1][-1]),
-                    textcoords="offset points", xytext=(-2, 16), fontsize=9.5,
+                    textcoords="offset points", xytext=(-2, 20), fontsize=9.5,
                     color=INK, ha="right")
+        # il picco non coincide col valore a regime: l'onda dei pensionamenti lo alza
+        # per una ventina d'anni, ed è il numero che conta per la programmazione. Sta
+        # sotto il lordo di fine periodo perchè è la stessa grandezza letta altrove
+        # sulla curva; il riquadro chiaro lo stacca dalla fascia che gli fa da fondo.
+        # SCRITTO SOLO SE C'È: con la fascia delle attrezzature il totale è piatto dal
+        # secondo ancoraggio in poi, quindi il picco È il valore di fine periodo e la
+        # riga ripeterebbe il numero appena scritto sopra. La soglia di mezzo decimo di
+        # miliardo è quella sotto la quale i due numeri si arrotondano uguali.
+        kp = int(np.argmax(cum[-1]))
+        if cum[-1][kp] - cum[-1][-1] > 0.05:
+            ax.annotate(f"(Picco {cum[-1][kp]:.1f} Mld EUR)",
+                        (d["anno"].iloc[-1], cum[-1][-1]), textcoords="offset points",
+                        xytext=(-2, 15), fontsize=8.5, color=INK2, ha="right", va="top",
+                        zorder=8,
+                        bbox=dict(boxstyle="round,pad=0.28", facecolor="#fcfcfb",
+                                  edgecolor="#c3c2b7", linewidth=0.7, alpha=0.92))
         # alone: questa etichetta cade DENTRO la fascia universitaria, e il colore del
         # retroflusso sul verde regge ma non è brillante (ΔE2000 34.1). L'alone la
         # stacca dal fondo senza doverle cambiare colore - e il colore qui è
@@ -506,21 +690,17 @@ def grafico_spesa_stack(dfs: dict[str, pd.DataFrame], fine: int, path: str,
         ax.annotate(f"Tasse -{irp[-1]:.1f} Mld EUR", (d["anno"].iloc[-1], -irp[-1]),
                     textcoords="offset points", xytext=(-2, -3), fontsize=8.5,
                     color=INK, ha="right", va="top")
-        # il picco non coincide col valore a regime: l'onda dei pensionamenti lo alza
-        # per una ventina d'anni, ed è il numero che conta per la programmazione
-        kp = int(np.argmax(cum[-1]))
-        # if cum[-1][kp] > cum[-1][-1] * 1.03:
-        #    ax.annotate(f"Picco +{cum[-1][kp]:.1f} ({d['anno'].iloc[kp]})",
-        #                (d["anno"].iloc[kp], cum[-1][kp]), textcoords="offset points",
-        #                xytext=(0, 9), fontsize=8.5, color=INK2, ha="center")
         # etichette dirette dentro le fasce, come nello stack dell'organico. La fascia
         # del rientro entra nella stessa lista con estremi (-irp, 0): sotto lo zero il
         # criterio di posa non cambia, è sempre "dove la fascia è più spessa su una
         # finestra larga quanto il testo". La soglia è però sull'intero SPAN della
         # figura, non sul solo ytop, altrimenti la parte sotto lo zero non conterebbe.
         anni = d["anno"].to_numpy()
-        estremi = [(np.zeros(len(d)), cum[0]), (cum[0], cum[1]), (-irp, np.zeros(len(d)))]
-        for (lo, hi), (_, _, col, dentro) in zip(estremi, [*SPESA, SPESA_IRPEF]):
+        # estremi ricavati dalle cumulate invece che scritti a mano: le fasce sopra lo
+        # zero sono quante ne ha 'voci', e la fascia del rientro si aggiunge in coda
+        estremi = [(b, a) for b, a in zip(np.vstack([np.zeros(len(d)), cum[:-1]]), cum)]
+        estremi.append((-irp, np.zeros(len(d))))
+        for (lo, hi), (_, _, col, dentro) in zip(estremi, [*voci, SPESA_IRPEF]):
             # la larghezza che conta è quella della riga più lunga, non del testo
             nch = max(len(r) for r in dentro.splitlines())
             posa = _posa_etichetta(anni, lo, hi, span, nch, 0.055)
@@ -528,7 +708,7 @@ def grafico_spesa_stack(dfs: dict[str, pd.DataFrame], fine: int, path: str,
                 continue
             ax.annotate(dentro, posa, fontsize=8.5, ha="center", va="center",
                         linespacing=1.35, color=_ink_su(col))
-        ax.set_title(etich[nome], fontsize=10, color=INK, loc="left", pad=8)
+        #ax.set_title(etich[nome], fontsize=10, color=INK, loc="left", pad=8)
         ax.grid(True, axis="y", lw=0.6, color=GRID)
         ax.set_axisbelow(True)
         # ogni tacca porta anche la quota della R&S pubblica di oggi
@@ -544,17 +724,24 @@ def grafico_spesa_stack(dfs: dict[str, pd.DataFrame], fine: int, path: str,
     ass = np.atleast_1d(axes)
     ass[0].set_ylabel("Mld EUR/anno in più rispetto ad oggi (EUR2026)\n",
                       fontsize=8.5, color=INK2)
-    h, l = ass[0].get_legend_handles_labels()
-    fig.legend(h[::-1], l[::-1], fontsize=8.5, frameon=False, labelcolor=INK2,
-               loc="lower center", ncol=len(l), bbox_to_anchor=(0.5, -0.005))
-    # titolo su due righe: una riga sola sfora la figura strettta a un pannello
-    fig.suptitle(f"Fondi per la ricerca pubblica: variazione annua rispetto al {C.ANNO0}, "
-                 "per ramo di bilancio",
-                 fontsize=12.5, color=INK, x=0.006, ha="left", y=0.995)
     # come nello stack dell'organico: su una figura stretta (un pannello solo) il
     # sottotitolo va spezzato, altrimenti esce dal bordo destro
     stretta = fig.get_figwidth() < 12
-    fig.tight_layout(rect=(0, 0.06, 1, 0.895 if stretta else 0.915))
+    h, l = ass[0].get_legend_handles_labels()
+    # con la fascia delle attrezzature le voci sono quattro, e su una riga sola non
+    # stanno in una figura a un pannello: li' vanno su due colonne, e la fascia in
+    # fondo alla figura si allarga di conseguenza
+    ncol = len(l) if not stretta or len(l) <= 3 else 2
+    righe_leg = -(-len(l) // ncol)
+    fig.legend(h[::-1], l[::-1], fontsize=8.5, frameon=False, labelcolor=INK2,
+               loc="lower center", ncol=ncol, bbox_to_anchor=(0.5, -0.005))
+    # titolo su due righe: una riga sola sfora la figura strettta a un pannello.
+    # "per voce" con la fascia delle attrezzature, che voce di bilancio non è: senza,
+    # le fasce sono i due rami e basta, e il titolo torna a dire quello.
+    fig.suptitle(f"Fondi per la ricerca pubblica: variazione annua rispetto al {C.ANNO0}, "
+                 f"per {'voce' if len(voci) > 2 else 'ramo'} di bilancio",
+                 fontsize=12.5, color=INK, x=0.006, ha="left", y=0.995)
+    fig.tight_layout(rect=(0, 0.06 * righe_leg, 1, 0.895 if stretta else 0.915))
     fig.savefig(path, dpi=140, facecolor="#fcfcfb")
     plt.close(fig)
 

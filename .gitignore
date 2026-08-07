@@ -52,7 +52,10 @@ $RECYCLE.BIN/
 *.lnk
 
 
+# tutto cio' che il modello produce (png, csv, e la sottocartella prepens)
+/output/
+
 *.csv
-*.png 
+*.png
 *.pdf
 *doc
