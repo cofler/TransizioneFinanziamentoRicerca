@@ -253,11 +253,15 @@ def simula_senza_prepens(dens_target: float, W: float = 1.0,
 
 def simula_senza_blocco(dens_target: float, W: float = 1.0,
                         q_ric: float = 0.0) -> pd.DataFrame:
-    salva, C.SCATTI_BLOCCO_ANNI = C.SCATTI_BLOCCO_ANNI, 0
+    """Controfattuale a blocco scatti spento. Le finestre sono DUE e vanno spente
+    entrambe: lasciarne accesa una darebbe un controfattuale che non è 'senza blocco',
+    e il confronto in tabella misurerebbe solo mezza leva."""
+    salva = C.SCATTI_BLOCCO_ANNI, C.SCATTI_BLOCCO2_ANNI
+    C.SCATTI_BLOCCO_ANNI = C.SCATTI_BLOCCO2_ANNI = 0
     try:
         return simula(dens_target, W, q_ric)
     finally:
-        C.SCATTI_BLOCCO_ANNI = salva
+        C.SCATTI_BLOCCO_ANNI, C.SCATTI_BLOCCO2_ANNI = salva
 
 
 def _anno_picco(dens_target: float, W: float, q_ric: float) -> int:
@@ -317,8 +321,12 @@ def _costi(s: Stato, soglia: float | None = None,
             "ric_uni": costo_epr_ruolo(s.perm_ric, *soglie_ric, anno)}
 
 
-def _fte(s: Stato) -> dict[str, float]:
-    fte = {k: t * C.ALPHA[k] for k, t in _teste(s).items()}
+def _fte(s: Stato, t: int | None = None) -> dict[str, float]:
+    """FTE-ricerca per figura. `t` è l'anno della rampa e serve solo al POSTDOC, la cui
+    quota-ricerca sale da C.ALPHA_PREC_OGGI a C.ALPHA_PREC_TGT lungo RAMP. Al default
+    (t=None) vale l'alpha di OGGI, che è quello che serve a chi conta l'anno base."""
+    a = C.alpha(t)
+    fte = {k: n * a[k] for k, n in _teste(s).items()}
     if not C.PHD_IN_FTE:
         fte["dottorando"] = 0.0
     return fte
@@ -328,18 +336,22 @@ def _fte_epr(s: Stato) -> float:
     return (sum(s.epr_ruolo) + sum(s.epr_prec)) * C.ALPHA_EPR
 
 
-def _fte_didattico(s: Stato) -> float:
+def _fte_didattico(s: Stato, t: int | None = None) -> float:
     """FTE-DOCENTE: le stesse persone del ramo universitario, pesate però per la quota
     di tempo NON dedicata alla ricerca. È il denominatore del rapporto studenti/docenti,
-    ed è il complemento esatto degli FTE-ricerca sulle figure che insegnano."""
-    return sum(t * (1 - C.ALPHA[k]) for k, t in _teste(s).items() if k in C.DOCENTI_DID)
+    ed è il complemento esatto degli FTE-ricerca sulle figure che insegnano.
+
+    Il postdoc ci entra con peso 1-alpha_precari(t), che parte da 0,25 e si azzera a fine
+    rampa: la sua didattica non sparisce nel 2026, si spegne nei dieci anni del piano."""
+    a = C.alpha(t)
+    return sum(n * (1 - a[k]) for k, n in _teste(s).items() if k in C.DOCENTI_DID)
 
 
-def _fte_ric_uni(s: Stato) -> float:
+def _fte_ric_uni(s: Stato, t: int | None = None) -> float:
     """FTE-ricercatori universitari, dottorandi SEMPRE esclusi. È la base su cui è
     ancorato il TA (Eurostat 2023, sotto l'ipotesi che i dottorandi non siano fra i
     ricercatori), quindi non deve dipendere dal flag PHD_IN_FTE."""
-    return sum(v for k, v in _fte(s).items() if k != "dottorando")
+    return sum(v for k, v in _fte(s, t).items() if k != "dottorando")
 
 
 def _spesa_epr(s: Stato, W: float, costo_prec: float,
@@ -408,28 +420,32 @@ def _spesa(s: Stato, W: float, W_phd: float = 1.0,
            soglia: float | None = None,
            soglie_ric: tuple[float | None, float | None] = (None, None),
            ta_fte: float | None = None,
-           anno: int | None = None) -> dict[str, float]:
+           anno: int | None = None,
+           t: int | None = None) -> dict[str, float]:
     teste = _teste(s)
     # il costo-ricerca usa ALPHA anche per i dottorandi esclusi dal conteggio FTE:
     # la borsa è spesa R&S comunque la si conti nel personale.
     # due leve distinte: W sul personale, W_phd sulle borse di dottorato.
+    # `t` è l'anno della rampa e muove il solo alpha del postdoc (vedi _fte): via via
+    # che la sua didattica si spegne, una fetta più grande del suo stipendio è HERD.
+    a = C.alpha(t)
     lev = {k: (W_phd if k == "dottorando" else W) for k in teste}
     cst = _costi(s, soglia, soglie_ric, anno)
-    herd_pers = sum(t * C.ALPHA[k] * cst[k] for k, t in teste.items())
-    herd_pers_w = sum(t * C.ALPHA[k] * cst[k] * lev[k] for k, t in teste.items())
-    full_pers_w = sum(t * cst[k] * lev[k] for k, t in teste.items())
+    herd_pers = sum(n * a[k] * cst[k] for k, n in teste.items())
+    herd_pers_w = sum(n * a[k] * cst[k] * lev[k] for k, n in teste.items())
+    full_pers_w = sum(n * cst[k] * lev[k] for k, n in teste.items())
     # --- personale tecnico-amministrativo, ESPLICITO in FTE ---
     # Il costo-ricerca è FTE*COSTO_TA (l'FTE incorpora già la quota-ricerca); il monte
     # stipendi PIENO, che va nel budget e non in HERD, è (FTE/ALPHA_TA)*COSTO_TA.
     # È la stessa distinzione che il modello fa fra herd_pers e full_pers per i
     # ricercatori, e che il vecchio SUPPORTO non faceva: usava l'importo alpha-pesato
     # in entrambi, sottostimando il budget di un fattore 1/alpha.
-    ta = _ta_uni(_fte_ric_uni(s)) if ta_fte is None else ta_fte
+    ta = _ta_uni(_fte_ric_uni(s, t)) if ta_fte is None else ta_fte
     W_ta = C.TA_UPLIFT
     ta_ric, ta_pieno = ta * C.COSTO_TA, ta / C.ALPHA_TA * C.COSTO_TA
     q_supp = C.SUPPORTO or 0.0
-    supp = q_supp * sum(t * C.ALPHA[k] * cst[k]
-                        for k, t in teste.items() if k != "dottorando")
+    supp = q_supp * sum(n * a[k] * cst[k]
+                        for k, n in teste.items() if k != "dottorando")
     attrezz = (herd_pers + supp + ta_ric) * (1 - C.LAMBDA_HE) / C.LAMBDA_HE
     return {"herd_mln": (herd_pers_w + W * supp + W_ta * ta_ric + attrezz) / 1e6,
             "budget_mln": (full_pers_w + W * supp + W_ta * ta_pieno + attrezz) / 1e6,
@@ -445,7 +461,7 @@ def _voci(s: Stato, W: float, W_phd: float, costo_prec: float,
           soglia: float | None = None,
           soglie_epr: tuple[float | None, float | None] = (None, None),
           soglie_ric: tuple[float | None, float | None] = (None, None),
-          anno: int | None = None) -> list[Voce]:
+          anno: int | None = None, t: int | None = None) -> list[Voce]:
     """Il monte stipendi dell'anno spezzato in gruppi OMOGENEI, per il calcolo IRPEF.
 
     Non e' una vista alternativa della spesa: e' la STESSA spesa di _spesa() e
@@ -493,7 +509,7 @@ def _voci(s: Stato, W: float, W_phd: float, costo_prec: float,
               costo_classe_epr(len(s.perm_ric), *soglie_ric, anno)))]
     v += [Voce("RTT", teste["RTT"], C.COSTO["RTT"] * W),
          # DUE FIGURE DISTINTE, non piu' un costo unico con due regimi fiscali:
-         # l'incarico di ricerca (entro 6 anni dalla laurea magistrale) costa meno ED e'
+         # l'incarico di ricerca (entro ANNI_FINESTRA_IDR dalla magistrale) costa meno ED e'
          # esente; il contratto di ricerca costa il pieno ed e' tassato. La media pesata
          # dei due e' COSTO['precari'], quindi la quadratura con _spesa() regge.
          Voce("postdoc incarico di ricerca", teste["precari"] * q_esente_prec,
@@ -520,8 +536,9 @@ def _voci(s: Stato, W: float, W_phd: float, costo_prec: float,
     # due masse divergerebbero e la quadratura col budget salterebbe. Oggi non si vede
     # solo perche' SUPPORTO si calibra a zero - cioe' e' un bug in attesa di un dato.
     cst = _costi(s, soglia, soglie_ric, anno)
-    massa = W * (C.SUPPORTO or 0.0) * sum(t * C.ALPHA[k] * cst[k]
-                                           for k, t in teste.items() if k != "dottorando")
+    a = C.alpha(t)
+    massa = W * (C.SUPPORTO or 0.0) * sum(n * a[k] * cst[k]
+                                          for k, n in teste.items() if k != "dottorando")
     massa += W * C.OVH_EPR_SUPP
     if massa > 0 and c_ta > 0:
         v.append(Voce("supporto non nominato", massa / c_ta, c_ta))
@@ -622,7 +639,7 @@ def simula(dens_target: float, W: float = 1.0, q_ric: float = 0.0) -> pd.DataFra
         # TA "grezzo" (senza cap): serve per calcolare il fattore di scala se il
         # tetto TA_CAP è superato. Calcolato ORA, prima del pavimento GOVERD, perchè
         # il pavimento aggiunge ruolo EPR e altera il conto.
-        ta_uni_raw = _ta_uni(_fte_ric_uni(s))
+        ta_uni_raw = _ta_uni(_fte_ric_uni(s, k))
         ta_epr_raw = _ta_epr(_fte_epr(s))
         ta_raw_tot = ta_uni_raw + ta_epr_raw
         if C.TA_CAP is not None and ta_raw_tot > C.TA_CAP:
@@ -643,10 +660,10 @@ def simula(dens_target: float, W: float = 1.0, q_ric: float = 0.0) -> pd.DataFra
             ta_raw_tot = ta_uni_raw + ta_epr_raw
             if C.TA_CAP is not None and ta_raw_tot > C.TA_CAP:
                 ta_scale = C.TA_CAP / ta_raw_tot
-        fte = _fte(s)
+        fte = _fte(s, k)
         fte_tot = sum(fte.values())
         sp = _spesa(s, Wk, _ramp(k, 1.0, C.W_PHD, C.RAMP_PHD), sgl,
-                    soglie_ric=sgl_ric, ta_fte=ta_uni_raw * ta_scale, anno=anno)
+                    soglie_ric=sgl_ric, ta_fte=ta_uni_raw * ta_scale, anno=anno, t=k)
         spe = _spesa_epr(s, Wk, cp,
                          ta_fte=ta_epr_raw * ta_scale, soglie=sgl_epr, anno=anno)
         # retroflusso fiscale dell'anno: la parte di monte stipendi che rientra
@@ -654,7 +671,7 @@ def simula(dens_target: float, W: float = 1.0, q_ric: float = 0.0) -> pd.DataFra
                                sp["ta_fte"], spe["ta_fte"],
                                _ramp(k, C.QUOTA_ESENTE_PREC_UNI,
                                      C.QUOTA_ESENTE_PREC_UNI_TGT), sgl,
-                               soglie_epr=sgl_epr, soglie_ric=sgl_ric, anno=anno))
+                               soglie_epr=sgl_epr, soglie_ric=sgl_ric, anno=anno, t=k))
         pub = (sp["herd_mln"] + spe["goverd_mln"]) / C.PIL_MLN * 100   # HERD + GOVERD
         # --- flussi dell'anno (servono anche come diagnostica in tabella) ---
         P2 = max(C.P2_MIN, _ramp(k, C.P2_HIST, C.P2_TGT))
@@ -746,12 +763,12 @@ def simula(dens_target: float, W: float = 1.0, q_ric: float = 0.0) -> pd.DataFra
             "quota_po": quota_po_coorte(s.perm, sgl),
             "costo_docente": costo_docente(s.perm, sgl),
             "anni_da_associato": sgl,
-            "fte_didattico": _fte_didattico(s),
-            "stud_per_doc": (C.STUDENTI_OGGI / _fte_didattico(s)
-                             if _fte_didattico(s) > 0 else float("nan")),
+            "fte_didattico": _fte_didattico(s, k),
+            "stud_per_doc": (C.STUDENTI_OGGI / _fte_didattico(s, k)
+                             if _fte_didattico(s, k) > 0 else float("nan")),
             "stud_per_doc_pop": (C.STUDENTI_OGGI * C.pop_100k(anno) / C.pop_100k(C.ANNO0)
-                                 / _fte_didattico(s)
-                                 if _fte_didattico(s) > 0 else float("nan")),
+                                 / _fte_didattico(s, k)
+                                 if _fte_didattico(s, k) > 0 else float("nan")),
             "ruolo_teste": sum(s.perm) + sum(s.perm_ric),
             "ric_uni_teste": sum(s.perm_ric),
             "phd_teste": sum(s.phd),

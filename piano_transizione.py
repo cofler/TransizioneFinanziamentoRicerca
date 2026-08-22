@@ -45,7 +45,8 @@ import numpy as np
 import pandas as pd
 
 import config as C
-from regime import (_blocco_on, _contrib, _epr_in_tgt, _ta_epr, _ta_uni,
+import scenario
+from regime import (_blocco_on, _contrib, _epr_in_tgt, _finestre, _ta_epr, _ta_uni,
                     costi_regime, densita_iso_herd, epr_in_diretto, epr_in_phd,
                     epr_in_rimpiazzo, epr_stock_regime, eta_ruolo_in, perm_dur,
                     regime_shares, teste_per_fte)
@@ -60,7 +61,7 @@ from calibrazione import (_calibra_anni_da_associato, _calibra_lambda_he,
                           _calibra_overhead_epr, _calibra_supporto, _goverd_base,
                           _herd_assoluto, _herd_base, _tabella_stabilizzazione,
                           _tempo_a_regime)
-from tabelle import RIGHE_TAB, tabella_scenario
+from tabelle import RIGHE_TAB, righe_con_prepens, tabella_scenario
 from grafici import (grafici_singolo, grafico_ffo, grafico_spesa_stack,
                      grafico_stack, grafico_target, grafico_trend)
 
@@ -69,6 +70,14 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Transizione FTE verso il regime cattedre.")
     ap.add_argument("--out", type=str, default=C.OUT,
                     help="cartella di output per png/csv (default: cartella dello script)")
+    ap.add_argument("--herd-tgt", type=float, default=C.HERD_TGT,
+                    help=f"obiettivo di spesa HERD in %% PIL (default {C.HERD_TGT}); "
+                         "si porta dietro HERD_RIF, il riferimento con cui si misura "
+                         "il 3%% GERD")
+    ap.add_argument("--goverd-tgt", type=float, default=C.GOVERD_TGT,
+                    help=f"obiettivo di spesa GOVERD in %% PIL (default {C.GOVERD_TGT}); "
+                         "e' anche il pavimento di spesa degli enti, salvo "
+                         "--no-goverd-pavimento")
     ap.add_argument("--uplift-ppp", type=float, default=C.UPLIFT_PPP,
                     help=f"moltiplicatore paghe (default {C.UPLIFT_PPP_EU:.3f} = MEDIA EUROPEA "
                          f"{C.REDDITO_PHD_EU:,} / Italia {C.REDDITO_PHD_IT:,} sul reddito dei "
@@ -175,17 +184,18 @@ def main() -> None:
                          f"IRPEF) invece che su contratto di ricerca "
                          f"({C.COSTO_PREC_CONTRATTO:,}, tassato). Default "
                          f"{C.QUOTA_PREC_INCARICO:.2f} = stima della quota che inizia il "
-                         "postdoc entro 6 anni dalla laurea magistrale, da AlmaLaurea "
-                         "(vedi il blocco POSTDOC in config). Sensitività sull'età alla "
-                         "magistrale: 0.613 a 26,5 anni, 0.707 a 28,0. È la quota di "
-                         "PERSONE: sullo stock conta solo per --anni-incarico su "
-                         f"{C.PRECARI_ANNI:.0f} anni di postdoc")
+                         f"postdoc entro {C.ANNI_FINESTRA_IDR} anni dalla laurea "
+                         "magistrale, da AlmaLaurea (vedi il blocco POSTDOC in config). "
+                         "Sensitività sull'età alla magistrale: 0.445 a 26,5 anni, 0.582 "
+                         "a 28,0. È la quota di PERSONE: sullo stock conta solo per "
+                         f"--anni-incarico su {C.PRECARI_ANNI:.0f} anni di postdoc")
     ap.add_argument("--anni-incarico", type=float, default=C.ANNI_INCARICO,
                     help=f"anni di postdoc copribili con incarico di ricerca (default "
-                         f"{C.ANNI_INCARICO}): la finestra dei 6 anni dalla magistrale si "
-                         "chiude durante il postdoc, quindi chi ha l'opzione la usa solo "
-                         "per una parte della permanenza. Sullo stock la quota a incarico "
-                         "vale --quota-incarico x (--anni-incarico / --precari-anni)")
+                         f"{C.ANNI_INCARICO}): la finestra dei {C.ANNI_FINESTRA_IDR} anni "
+                         "dalla magistrale si chiude durante il postdoc, quindi chi ha "
+                         "l'opzione la usa solo per una parte della permanenza. Sullo "
+                         "stock la quota a incarico vale --quota-incarico x "
+                         "(--anni-incarico / --precari-anni)")
     ap.add_argument("--p2-hist", type=float, default=C.P2_HIST,
                     help="stabilizzazione storica (default 0.10)")
     ap.add_argument("--p2-min", type=float, default=C.P2_MIN,
@@ -240,100 +250,38 @@ def main() -> None:
     ap.add_argument("--scatti-blocco-da", type=int, default=C.SCATTI_BLOCCO_DA,
                     help=f"blocco scatti: primo anno del blocco (default {C.SCATTI_BLOCCO_DA})")
     ap.add_argument("--scatti-blocco-anni", type=int, default=C.SCATTI_BLOCCO_ANNI,
-                    help=f"blocco scatti: anni di blocco (default {C.SCATTI_BLOCCO_ANNI} = spento)")
+                    help=f"blocco scatti: anni di blocco (default {C.SCATTI_BLOCCO_ANNI}, "
+                         "cioe' ACCESO; usa 0 per spegnerlo)")
     ap.add_argument("--scatti-blocco-recupero", type=float, default=C.SCATTI_BLOCCO_RECUPERO,
                     help=f"blocco scatti: quota di anni restituita (default {C.SCATTI_BLOCCO_RECUPERO})")
+    ap.add_argument("--scatti-blocco2-da", type=int, default=C.SCATTI_BLOCCO2_DA,
+                    help=f"SECONDA finestra di blocco scatti, quella piccola sul gradino "
+                         f"di fine rampa: primo anno (default {C.SCATTI_BLOCCO2_DA}). "
+                         "Non deve sovrapporsi alla prima")
+    ap.add_argument("--scatti-blocco2-anni", type=int, default=C.SCATTI_BLOCCO2_ANNI,
+                    help=f"seconda finestra: anni di blocco (default "
+                         f"{C.SCATTI_BLOCCO2_ANNI}; usa 0 per spegnerla)")
+    ap.add_argument("--scatti-blocco2-recupero", type=float,
+                    default=C.SCATTI_BLOCCO2_RECUPERO,
+                    help=f"seconda finestra: quota di anni restituita (default "
+                         f"{C.SCATTI_BLOCCO2_RECUPERO} = meta', piu' mite della prima)")
     a = ap.parse_args()
-    C.PREPENS_ANNI, C.PREPENS_ADES, C.PREPENS_SIGMA = (a.prepens_anni, a.prepens_ades,
-                                                 a.prepens_sigma)
-    C.PREPENS_CODA, C.PREPENS_ASIMM = a.prepens_coda, a.prepens_asimm
-    # None fa scattare la regola di _centro_finestra dentro simula()
-    C.PREPENS_CENTRO = None if a.prepens_centro_auto else a.prepens_centro
-    C.SCATTI_BLOCCO_DA, C.SCATTI_BLOCCO_ANNI = a.scatti_blocco_da, a.scatti_blocco_anni
-    C.SCATTI_BLOCCO_RECUPERO = a.scatti_blocco_recupero
-    C.P2_HIST, C.PERM_OGGI, C.PRECARI_ANNI, C.RAMP = a.p2_hist, a.perm_oggi, a.precari_anni, a.ramp
-    C.RAMP_PHD = a.ramp_phd
-    C.RIC_UNI_RUOLO_OGGI = a.ric_uni_ruolo_oggi
-    C.P2_MIN = a.p2_min
-    C.STAB_PHD, C.PHD_IN_FTE, C.D_RTT = a.stab_phd, a.phd_in_fte, a.rtt_anni
-    C.EPR_PRECARI_OGGI, C.EPR_RUOLO_OGGI = a.epr_precari, a.epr_ruolo
-    C.EPR_NON_MUR_OGGI, C.PHD_NEL_DIRETTO_EPR = a.epr_non_mur, a.phd_nel_diretto
-    C.EPR_PAV_GAIN = a.epr_pav_gain
-    if a.no_goverd_pavimento:
-        C.GOVERD_MIN = None
-        C.EPR_PAV_GAIN = 0.0
-    if a.no_attrezzature:
-        C.ATTREZZ_INVILUPPO = False
-    C.EPR_RICERC_OGGI = C.EPR_PRECARI_OGGI + C.EPR_RUOLO_OGGI
-    C.COSTO_EPR_RUOLO, C.P2_TGT = a.costo_epr_ruolo, a.p2_tgt
-    C.ANNI_DA_LIV2, C.ANNI_DA_LIV1 = a.epr_anni_liv2, a.epr_anni_liv1
-    C.QUOTA_EPR_II_TGT, C.QUOTA_EPR_I_TGT = a.epr_quota_ii_tgt, a.epr_quota_i_tgt
-    C.QUOTA_RIC_UNI, C.UPLIFT_PPP = a.quota_ric_uni, a.uplift_ppp
-    C.QUOTA_PO_TGT = a.quota_po_tgt
-    # Vincolo di stabilizzazione. Con P2_univ = P2_EPR = 1 (nessun imbuto interno)
-    # si riduce a P1 = STAB_PHD: tutta la selezione è all'uscita dal dottorato.
-    # (Con P2_univ < 1 l'EPR, che stabilizza al 100%, alza di poco la media: è un
-    # flusso di rimpiazzo piccolo, quindi si approssima col solo ramo universitario.)
-    C.P1 = min(1.0, C.STAB_PHD / C.P2_TGT)
-    C.BORSA_TGT = a.borsa_tgt
-    C.W_PHD = C.BORSA_TGT / C.BORSA_OGGI
-    C.COSTO["dottorando"] = a.costo_phd
+    p = {**scenario.DEFAULTS, **vars(a)}
+    try:
+        # la CLI vuole tutti e tre gli scenari; i controfattuali se li calcola da se'
+        # piu' sotto, dove servono, quindi controlli=False.
+        res = scenario.esegui(p, quali=scenario.NOMI_SCENARI, controlli=False)
+    except ValueError as e:
+        ap.error(str(e))
+    dfs, scen = res.dfs, res.target
+    # la destinazione dei file e' l'unica cosa che resta alla CLI: importare o eseguire
+    # il modello non deve scrivere sul disco.
     C.OUT = a.out
     os.makedirs(C.OUT, exist_ok=True)
-    C.TA_ELAST, C.COSTO_TA, C.TA_UPLIFT, C.TA_SEGUE_W = a.ta_elast, a.costo_ta, a.ta_uplift, a.ta_segue_w
-    if a.ta_cap is not None:
-        C.TA_CAP = a.ta_cap
-    # la quota a incarico governa TRE cose insieme - platea esente, costo medio del
-    # postdoc e quindi la spesa - e vanno mosse assieme, altrimenti la scomposizione
-    # IRPEF non quadra piu' col monte stipendi di _spesa(). Va DOPO --precari-anni,
-    # perche' la quota sullo stock e' una frazione della permanenza.
-    C.QUOTA_PREC_INCARICO, C.ANNI_INCARICO = a.quota_incarico, a.anni_incarico
-    C.QUOTA_ESENTE_PREC_UNI = C.QUOTA_ESENTE_PREC_UNI_TGT = C.quota_incarico_stock()
-    C.COSTO["precari"] = C.costo_precari()
-    # Densità iniziale RICAVATA dagli stock, non imposta. Va fatto prima di ogni
-    # calibrazione: FTE_OGGI è la base del TA e l'ancora del ramo universitario.
-    # I precari chiudono il gap: dipendono da PERM_OGGI, P2_HIST, D_RTT e PRECARI_ANNI,
-    # quindi vanno risolti DOPO che tutti quelli sono stati letti dalla CLI.
-    C.PRECARI_OGGI = _precari_per_chiudere() if a.precari_oggi is None else a.precari_oggi
-    C.FTE_OGGI = _fte_uni_oggi()
-    C.DENS_OGGI = C.FTE_OGGI / C.POP_100K
-    # livelli di TA dal rapporto misurato: così il TA segue il perimetro del modello
-    C.TA_UNI_OGGI = C.TA_UNI_RATIO * C.FTE_OGGI
-    C.TA_EPR_OGGI = C.TA_EPR_RATIO * C.EPR_RICERC_OGGI * C.ALPHA_EPR
-    # studenti impliciti nel rapporto di partenza, sul denominatore in FTE didattici
-    C.STUDENTI_OGGI = C.STUD_DOC_OGGI * _fte_didattico(_init_stato(0.0))
-    # ORDINE OBBLIGATO: la soglia PA->PO viene prima di tutto il resto (il costo dei
-    # professori entra nell'HERD ricostruito), lambda dipende dal TA (esplicito), il
-    # supporto residuo dipende da lambda, l'overhead EPR dal supporto. Invertirli dà
-    # una calibrazione incoerente.
-    C.ANNI_DA_ASSOCIATO = _calibra_anni_da_associato()
-    C.LAMBDA_HE = _calibra_lambda_he() if a.lambda_he is None else a.lambda_he
-    C.SUPPORTO = _calibra_supporto() if a.supporto is None else a.supporto
-    C.OVH_EPR_SUPP, C.OVH_EPR_ATTR = _calibra_overhead_epr()
 
-    base_herd = _herd_base()
-    quota_reg = regime_shares(C.PRECARI_ANNI)["docente"]
-    phd_oggi = _pd_in0() * C.D_PHD
-
-    # la quota-ricercatori è una leva solo del terzo scenario: FLC ed ERA restano
-    # i baseline tutto-cattedre, così il confronto isola l'effetto della riforma.
-    _q = C.QUOTA_RIC_UNI
-    C.QUOTA_RIC_UNI = 0.0
-    d_era = densita_iso_herd(C.HERD_TGT, 1.0, C.PRECARI_ANNI, C.W_PHD)
-    C.QUOTA_RIC_UNI = _q
-    d_ppp = densita_iso_herd(C.HERD_TGT, C.UPLIFT_PPP, C.PRECARI_ANNI, C.W_PHD)
-    C.QUOTA_RIC_UNI = 0.0
-    scen = {
-        "FLC":          (140.0, 1.0, 0.0),
-        "ERA":          (d_era, 1.0, 0.0),
-        "ERA_PPP_ric":  (d_ppp, C.UPLIFT_PPP, _q),
-    }
-    # l'inviluppo di spesa si posa QUI, una volta sola, subito dopo la simulazione:
-    # da questo punto in poi CSV, tabelle e grafici vedono tutti le stesse colonne.
-    # Le due simulazioni di controllo (senza prepensionamento, senza blocco scatti)
-    # non passano di qui: confrontano teste e costo per testa, non spesa di piano.
-    dfs = {nome: piano_attrezzature(simula(t, W, q))
-           for nome, (t, W, q) in scen.items()}
+    # calcolate dentro esegui() prima che scenari() azzeri QUOTA_RIC_UNI
+    base_herd, quota_reg = res.cal["base_herd"], res.cal["quota_reg"]
+    phd_oggi = res.cal["phd_oggi"]
 
     print("#" * 82)
     print("# TRANSIZIONE DINAMICA - stato stazionario da imbuto")
@@ -590,26 +538,36 @@ def main() -> None:
                   "NON è più confrontabile. Riduci sigma o anticipa il centro.")
 
     # ---- blocco scatti stipendiali ----
-    if C.SCATTI_BLOCCO_ANNI >= 1:
-        T1 = C.SCATTI_BLOCCO_DA + C.SCATTI_BLOCCO_ANNI
-        print(f"\n[BLOCCO SCATTI] {C.SCATTI_BLOCCO_ANNI} anni dal {C.SCATTI_BLOCCO_DA} "
-              f"al {T1-1}, recupero {C.SCATTI_BLOCCO_RECUPERO:.0%}")
+    # DUE finestre, con due bersagli diversi: la grande sulla gobba demografica del 2057,
+    # la piccola sul gradino di fine rampa. Ognuna va misurata nel SUO anno, altrimenti
+    # la seconda non si vede: nel 2055 e' gia' tutta riassorbita.
+    if _fin := _finestre():
+        _et = [(int(da), int(a1) - 1, rec) for da, a1, rec in _fin]
+        print("\n[BLOCCO SCATTI] " + " + ".join(
+            f"{a-d+1} anni dal {d} al {a} (recupero {r:.0%})" for d, a, r in _et))
+        # anno di misura per finestra: due anni dopo la sua chiusura, quando l'effetto
+        # sul costo per testa e' pieno ma non ancora eroso dal ricambio della coorte
+        _anni_mis = sorted({min(a + 2, C.ANNO0 + C.ORIZZONTE) for _, a, _ in _et})
         blk = []
         for nome, (t, W, q) in scen.items():
             df, df0 = dfs[nome], simula_senza_blocco(t, W, q)
             r = {"scenario": nome}
-            for tag, d in (("senza", df0), ("con", df)):
-                dev = (d["costo_docente"] / df0["costo_docente"].iloc[-1] - 1) * 100
-                r[f"costo_doc_{tag}_2055"] = round(d.loc[d["anno"]==2055, "costo_docente"].iloc[0] / 1e3, 1)
-                r[f"HERD_{tag}_2055"] = round(d.loc[d["anno"]==2055, "HERD_%PIL"].iloc[0], 3)
-                r[f"budget_{tag}_2055"] = round(d.loc[d["anno"]==2055, "budget_univ_mld"].iloc[0], 2)
-            r["dHERD_2055_pp"] = round(r["HERD_con_2055"] - r["HERD_senza_2055"], 3)
-            r["dBudget_2055_mld"] = round(r["budget_con_2055"] - r["budget_senza_2055"], 2)
+            for y in _anni_mis:
+                h_no = df0.loc[df0["anno"] == y, "HERD_%PIL"].iloc[0]
+                h_si = df.loc[df["anno"] == y, "HERD_%PIL"].iloc[0]
+                b_no = df0.loc[df0["anno"] == y, "budget_univ_mld"].iloc[0]
+                b_si = df.loc[df["anno"] == y, "budget_univ_mld"].iloc[0]
+                r[f"costo_doc_{y}"] = round(df.loc[df["anno"] == y, "costo_docente"].iloc[0] / 1e3, 1)
+                r[f"dHERD_{y}_pp"] = round(h_si - h_no, 3)
+                r[f"dBudget_{y}_mld"] = round(b_si - b_no, 2)
             dev_2080 = (_teste_tot(df).iloc[-1] / _teste_tot(df0).iloc[-1] - 1) * 100
             r["scarto_2080_%"] = round(dev_2080, 2)
             blk.append(r)
         print(pd.DataFrame(blk).to_string(index=False))
-        print("  -> costo_docente in kEUR/testa al 2055; HERD e budget del ramo univ.")
+        print(f"  -> costo_docente in kEUR/testa; dHERD e dBudget sono CON meno SENZA "
+              f"blocco, ramo universitario. Anni di misura {_anni_mis}: uno per finestra,")
+        print(f"     due anni dopo la sua chiusura. La finestra piccola non si vedrebbe "
+              f"nel {_anni_mis[-1]}, dove e' gia' tutta riassorbita.")
         ok = all(abs(x["scarto_2080_%"]) < 0.1 for x in blk)
         if ok:
             print("  -> la leva è TRANSITORIA: stato stazionario identico (scarto_2080 ~ 0).")
@@ -694,12 +652,14 @@ def main() -> None:
     # SENSITIVITA' sulla quota a INCARICO DI RICERCA. Non e' piu' una sensitivita' solo
     # fiscale: la quota muove ANCHE il costo medio del postdoc, quindi la spesa, la
     # calibrazione e la densita' raggiungibile. Il parametro incerto e' l'eta' alla
-    # laurea magistrale, che decide chi sta dentro la finestra dei 6 anni.
+    # laurea magistrale, che decide chi sta dentro la finestra. A finestra corta (4 anni)
+    # la soglia cade dentro la classe di eta' piu' densa, quindi la sensitivita' e' PIU'
+    # ampia di quanto fosse a 6 anni: 44,5%-58,2% contro 61,3%-70,7%.
     _v0_pd = scomponi(Voce("postdoc", 1.0, C.COSTO_PREC_CONTRATTO))["irpef"]
     _sens, _base_q = [], C.QUOTA_PREC_INCARICO
-    for _q_in, _et in ((0.613, "laurea magistrale a 26,5 anni"),
+    for _q_in, _et in ((0.445, "laurea magistrale a 26,5 anni"),
                        (_base_q, "laurea magistrale a 27,2 anni [IN USO]"),
-                       (0.707, "laurea magistrale a 28,0 anni")):
+                       (0.582, "laurea magistrale a 28,0 anni")):
         C.QUOTA_PREC_INCARICO = _q_in
         _q_st = C.quota_incarico_stock()
         C.QUOTA_ESENTE_PREC_UNI = C.QUOTA_ESENTE_PREC_UNI_TGT = _q_st
@@ -718,25 +678,33 @@ def main() -> None:
     C.QUOTA_ESENTE_PREC_UNI = C.QUOTA_ESENTE_PREC_UNI_TGT = C.quota_incarico_stock()
     print(f"\n  SENSITIVITA' sulla quota a INCARICO DI RICERCA ({C.COSTO_PREC_INCARICO:,} "
           f"lordo amm., esente IRPEF art. 6 c.6 L.398/1989). 'quota_persone' = chi ha "
-          f"l'opzione (entro 6 anni dalla magistrale);\n  'quota_stock' = gli anni-persona "
-          f"che ci stanno davvero, perche' l'incarico copre {C.ANNI_INCARICO:g} dei "
-          f"{C.PRECARI_ANNI:.0f} anni di postdoc. Scenario ERA_PPP_ric:")
+          f"l'opzione (entro {C.ANNI_FINESTRA_IDR} anni dalla magistrale);\n  'quota_stock' "
+          f"= gli anni-persona che ci stanno davvero, perche' l'incarico copre "
+          f"{C.ANNI_INCARICO:g} dei {C.PRECARI_ANNI:.0f} anni di postdoc. "
+          f"Scenario ERA_PPP_ric:")
     print(pd.DataFrame(_sens).to_string(index=False))
     print(f"  -> la stima incrocia la distribuzione dell'eta' al DOTTORATO (AlmaLaurea "
-          f"2022: media 32,6a) con l'eta' alla LAUREA MAGISTRALE (27,2a): chi si "
-          f"dottora prima dei 33,2 anni\n     e' dentro la finestra. Il conto rifatto "
-          f"per area disciplinare da' 65,6% contro il 65,7% aggregato - due strade, "
-          f"stesso numero.")
+          f"2022: media 32,6a, mediana ~31,0a) con l'eta' alla LAUREA MAGISTRALE "
+          f"(27,2a): chi si dottora prima dei {27.2+C.ANNI_FINESTRA_IDR:.1f} anni\n     "
+          f"e' dentro la finestra. La soglia cade appena sopra la MEDIANA, quindi la "
+          f"platea e' poco piu' della meta' - a 6 anni era il 65,7%.")
+    print(f"  -> la FINESTRA A {C.ANNI_FINESTRA_IDR} ANNI e' una scelta di proposta, non "
+          f"un dato: l'incarico esente resta un ponte d'INGRESSO e non diventa un canale "
+          f"di sottoinquadramento.\n     Sullo stock ne resta il "
+          f"{C.quota_incarico_stock():.1%} degli anni-persona, cioe' una figura "
+          f"RESIDUALE: il postdoc del modello e' ormai il contratto di ricerca pieno.")
     print(f"  -> /!\\ la quota muove DUE cose insieme: la platea esente IRPEF e il COSTO "
           f"MEDIO del postdoc ({C.COSTO['precari']:,.0f} EUR contro i "
           f"{C.COSTO_PREC_CONTRATTO:,} di un contratto di ricerca pieno).\n"
           f"     E' quindi una leva di SPESA prima ancora che di fisco: un postdoc "
           f"tassato paga {_v0_pd:,.0f} EUR di IRPEF, ma ne costa "
           f"{C.COSTO_PREC_CONTRATTO-C.COSTO_PREC_INCARICO:,} in piu'.")
-    print(f"  -> /!\\ SEMPLIFICAZIONE: la quota vale su TUTTO lo stock e per tutta la "
-          f"permanenza nel postdoc, mentre la finestra dei 6 anni si chiuderebbe durante "
-          f"il postdoc stesso.\n     E' quindi un LIMITE SUPERIORE della platea a "
-          f"incarico, e con essa un limite inferiore del costo e del gettito.")
+    print(f"  -> /!\\ SEMPLIFICAZIONE: la chiusura della finestra e' contabilizzata in "
+          f"MEDIA, non per coorte. Il modello tiene {C.quota_incarico_stock():.1%} dei "
+          f"postdoc su incarico per tutto il\n     periodo, invece dei "
+          f"{C.QUOTA_PREC_INCARICO:.0%} che ci stanno per {C.ANNI_INCARICO:g} anni e poi "
+          f"passano a contratto: stessi anni-persona, stesse masse, profilo individuale "
+          f"diverso.")
     _phd = _q["phd_teste"].iloc[-1] * C.COSTO["dottorando"] * C.W_PHD / 1e9
     print(f"  -> /!\\ le BORSE di dottorato sono esenti IRPEF (art. 4 L. 476/1984): "
           f"{_phd:.1f} mld/anno a regime che tornano solo come Gestione separata.\n"
@@ -793,16 +761,12 @@ def main() -> None:
     # ---- report 2026-2050 ----
     # le righe del prepensionamento compaiono solo se la leva è accesa: a leva spenta
     # sarebbero tre righe di zeri in una tabella già fitta
-    if _prepens_on():
-        i = [e for e, _, _ in RIGHE_TAB].index("Pensionamenti/anno") + 1
-        RIGHE_TAB[i:i] = [("Prepensionati/anno", "prepensionati", 0),
-                          ("Pensioni anticipate in carico (teste)", "prepens_in_carico", 0),
-                          ("Costo pensioni anticipate (mln EUR)", "pensioni_anticipate_mln", 0)]
+    righe = righe_con_prepens() if _prepens_on() else RIGHE_TAB
     anni = [2026, 2030, 2035, 2040, 2050, 2060, 2070, 2080]
     for nome in ("FLC", "ERA_PPP_ric"):
         print(f"\n{'='*100}\nTABELLA {nome} - traiettoria {anni[0]}-{anni[-1]} "
               f"(target {scen[nome][0]:.0f} FTE/100k, paghe x{scen[nome][1]:.2f})\n{'='*100}")
-        print(tabella_scenario(dfs[nome], anni).to_string())
+        print(tabella_scenario(dfs[nome], anni, righe).to_string())
     # i grafici si fermano a FINE_GRAFICI, le tabelle e i CSV no: gli ultimi anni sono
     # una linea piatta che ruba spazio alla transizione (vedi il commento in config)
     fg = C.FINE_GRAFICI
@@ -860,26 +824,47 @@ def main() -> None:
                  if C.ATTREZZ_INVILUPPO else ""))
     _fd0 = _fte_didattico(_init_stato(0.0))
     print(f"\n  [CARICO DIDATTICO] studenti per docente in FTE didattici (peso = 1-alpha: "
-          f"prof {1-C.ALPHA['docente']:.2f}, ric.univ/RTT/postdoc {1-C.ALPHA['RTT']:.2f}; "
+          f"prof {1-C.ALPHA['docente']:.2f}, ric.univ/RTT {1-C.ALPHA['RTT']:.2f}; "
           f"dottorandi esclusi)")
+    print(f"      il POSTDOC e' l'unico peso che si MUOVE: {1-C.alpha_precari(0):.2f} nel "
+          f"{C.ANNO0} come oggi, {1-C.alpha_precari(C.RAMP):.2f} dal {C.ANNO0+C.RAMP} "
+          f"(sola ricerca), rampato su {C.RAMP} anni come le altre leve.")
     print(f"  denominatore {C.ANNO0} = {_fd0:,.0f} FTE-docente -> studenti impliciti "
           f"{C.STUDENTI_OGGI:,.0f}")
     for nome, df in dfs.items():
+        # NON basta il primo anno sotto il traguardo: con la didattica del postdoc che
+        # si spegne lungo la rampa il rapporto puo' scendere sotto 14,3 durante la gobba
+        # demografica e poi RISALIRE sopra. Dire "raggiunta nel 2057" e fermarsi li'
+        # sarebbe falso, quindi si dichiara anche se ci si resta.
         sotto = df[df["stud_per_doc"] <= C.STUD_DOC_TGT]
         anno = int(sotto["anno"].iloc[0]) if len(sotto) else -1
+        resta = len(sotto) and df["stud_per_doc"].iloc[-1] <= C.STUD_DOC_TGT
         f30 = df[df["anno"] == C.ANNO0 + 30].iloc[0]
         fin = df.iloc[-1]
+        esito = ("MAI" if anno < 0 else
+                 f"{anno}" if resta else
+                 f"{anno} ma RIPERSA (fine a {fin['stud_per_doc']:.2f})")
         print(f"  {nome:<12} {C.ANNO0}: {df['stud_per_doc'].iloc[0]:.2f} | "
               f"{C.ANNO0+30}: {f30['stud_per_doc']:.2f} | {C.ANNO0+C.ORIZZONTE}: "
               f"{fin['stud_per_doc']:.2f} (a studenti fermi) / {fin['stud_per_doc_pop']:.2f} "
-              f"(studenti ~ pop.) | media UE {C.STUD_DOC_TGT} raggiunta nel "
-              + (f"{anno}" if anno > 0 else "MAI"))
-    print(f"  /!\\ In FTE didattici il rapporto si muove MOLTO meno che in teste PO/PA: la "
-          f"transizione sposta persone dal precariato (peso {1-C.ALPHA['precari']:.2f}) al "
-          f"ruolo (peso {1-C.ALPHA['docente']:.2f}),")
-    print(f"      quindi ogni stabilizzazione vale {(1-C.ALPHA['docente'])/(1-C.ALPHA['RTT']):.0f}x "
-          f"in capacità didattica. è l'effetto che conta, ed è invisibile se si contano "
-          f"le teste.")
+              f"(studenti ~ pop.) | media UE {C.STUD_DOC_TGT}: " + esito)
+    _pk = max(dfs["ERA_PPP_ric"]["stud_per_doc"])
+    print(f"  /!\\ ATTENZIONE: il rapporto PEGGIORA prima di migliorare - tocca "
+          f"{_pk:.2f} a fine rampa, sopra il {C.STUD_DOC_OGGI} di partenza. Togliere la "
+          f"didattica al postdoc")
+    print(f"      toglie ~{C.PRECARI_OGGI*(1-C.alpha_precari(0)):,.0f} FTE-docente dal "
+          f"denominatore in {C.RAMP} anni, e il ruolo non cresce cosi' in fretta: la "
+          f"didattica del postdoc va RIMPIAZZATA, non solo tolta.")
+    print(f"  /!\\ DUE effetti sovrapposti, e vanno letti insieme. (1) La transizione "
+          f"sposta persone dal precariato al ruolo (peso {1-C.ALPHA['RTT']:.2f} -> "
+          f"{1-C.ALPHA['docente']:.2f}, cioè "
+          f"{(1-C.ALPHA['docente'])/(1-C.ALPHA['RTT']):.0f}x).")
+    print(f"      (2) Il postdoc esce dalla didattica lungo la rampa (peso "
+          f"{1-C.alpha_precari(0):.2f} -> {1-C.alpha_precari(C.RAMP):.2f}), il che TOGLIE "
+          f"denominatore nei primi {C.RAMP} anni: il rapporto migliora più lentamente "
+          f"all'inizio")
+    print(f"      di quanto farebbero le sole assunzioni. È l'effetto che conta, ed è "
+          f"invisibile se si contano le teste.")
     print(f"      NB: il {C.STUD_DOC_OGGI} di partenza e il traguardo {C.STUD_DOC_TGT} devono "
           f"venire dallo stesso indicatore, altrimenti il confronto non è omogeneo.")
     print()

@@ -44,25 +44,32 @@ ruolo. Si ignorano quindi tutti i tetti di spesa, blocchi del turnover e limiti 
 
 | | 2026 | **2070** | obiettivo |
 |---|---|---|---|
-| **Densità ricercatori pubblici** univ.+enti, **popolazione SSP2** | 156,3 | **239,7** | **221** (media semplice UE27) |
-| Densità FTE università (pop. 2026 fissa) | 109,2 | **160,8** | *risultato*, non obiettivo |
-| Densità FTE università (popolazione SSP2) | 109,2 | 180,7 | — |
-| Densità personale R&S totale con TA (SSP2) | 239,5 | **404,0** | — |
-| **HERD (% PIL)** | 0,360 | **0,696** | 0,68 |
-| **GOVERD (% PIL)** | 0,209 | **0,256** | 0,23 |
-| **R&S pubblica (% PIL)** | 0,568 | **0,952** | 0,91 |
-| GERD, con BERD per ipotesi (% PIL) | 1,373 | 3,000 | 3,00 |
+| **Densità ricercatori pubblici** univ.+enti, **popolazione SSP2** | 156,3 | **246,2** | **221** (media semplice UE27) |
+| Densità FTE università (pop. 2026 fissa) | 109,2 | **166,5** | *risultato*, non obiettivo |
+| Densità FTE università (popolazione SSP2) | 109,2 | 187,1 | — |
+| Densità personale R&S totale con TA (SSP2) | 239,5 | **417,4** | — |
+| **HERD (% PIL)** | 0,360 | **0,697** | 0,68 |
+| **GOVERD (% PIL)** | 0,207 | **0,256** | 0,23 |
+| **R&S pubblica (% PIL)** | 0,567 | **0,953** | 0,91 |
+| GERD, con BERD per ipotesi (% PIL) | 1,366 | 3,000 | 3,00 |
 | Moltiplicatore paghe W | 1,00 | **1,16** | 1,16 |
 | Borsa di dottorato (EUR/mese netti) | 1.195 | **1.656** | 1.656 |
-| Componente precaria (% postdoc su personale di ricerca) | 39,0 | **17,7** | — |
-| Personale di ruolo università (teste) | 47.877 | **98.545** | — |
-| di cui a profilo ricercatore | 4.831 | **32.848** (1/3) | 1/3 |
+| Componente precaria (% postdoc su personale di ricerca) | 39,0 | **17,6** | — |
+| Personale di ruolo università (teste) | 47.877 | **94.484** | — |
+| di cui a profilo ricercatore | 4.831 | **31.495** (1/3) | 1/3 |
 | Enti pubblici di ricerca, ruolo (teste) | 30.896 | 38.567 | — |
-| Personale TA, univ.+enti (FTE) | 48.894 | **85.950** | — |
-| Docenti in FTE didattici | 35.749 | **53.408** | — |
-| Studenti per docente (FTE) | 19,45 | **13,02** | 14,3 (media UE) |
-| Costo aggiuntivo per lo Stato (mld/anno) | — | **+13,3** | — |
-| Budget pubblico totale (% PIL) | 0,843 | 1,451 | — |
+| Personale TA, univ.+enti (FTE) | 48.894 | **89.576** | — |
+| Docenti in FTE didattici | 35.749 | **43.795** | — |
+| Studenti per docente (FTE) | 19,45 | **15,88** ⚠️ | 14,3 (media UE) |
+| Costo aggiuntivo per lo Stato (mld/anno) | — | **+12,8** | — |
+| Budget pubblico totale (% PIL) | 0,843 | 1,432 | — |
+
+> ⚠️ **Il traguardo sul carico didattico NON è raggiunto, ed è una conseguenza voluta di
+> una scelta del piano.** Il postdoc smette di fare didattica (§1), il che toglie ~11.800
+> FTE-docente dal denominatore nei dieci anni della rampa: il rapporto **peggiora prima
+> di migliorare** (21,20 nel 2036), tocca 14,3 solo nel 2057 al culmine della gobba
+> demografica e **risale a 15,88 nel 2070**. La didattica del postdoc va **rimpiazzata**,
+> non solo tolta — e a questo organico non lo è del tutto. Vedi §10.
 
 > **HERD e GOVERD al 2070 stanno sopra il target** (0,696 e 0,256 contro 0,68 e 0,23)
 > perché il sistema sta ancora rientrando dal picco del 2057. A stato stazionario
@@ -74,8 +81,8 @@ ruolo. Si ignorano quindi tutti i tetti di spesa, blocchi del turnover e limiti 
 > meno persone, quindi vale una densità più alta.
 
 **Tempi.** Il 90% del divario di densità FTE è colmato entro il **2051** (25 anni). La
-spesa aggiuntiva tocca il massimo di **15,0 mld** nel **2057**, è a **13,3 nel 2070** e
-rientra a 12,0 a regime: è un'onda demografica, non una scelta (§11).
+spesa aggiuntiva tocca il massimo di **14,3 mld** nel **2057**, è a **12,8 nel 2070** e
+rientra a 11,5 a regime: è un'onda demografica, non una scelta (§11).
 
 ---
 
@@ -90,7 +97,7 @@ dedicano alla ricerca, il coefficiente **α**.
 | Professore di ruolo (PO/PA) | 0,50 | 0,50 |
 | **Ricercatore universitario di ruolo** (`ric_uni`) | **0,75** | 0,25 |
 | RTT (tenure track) | 0,75 | 0,25 |
-| Postdoc / assegni | 0,75 | 0,25 |
+| **Postdoc** | **0,75 → 1,00** (rampa 10a) | **0,25 → 0,00** |
 | Dottorandi | 0,75 | escluso |
 | Ricercatori degli enti (EPR) | 0,75 | — |
 | Personale TA | 0,563 (misurato) | — |
@@ -99,6 +106,28 @@ dedicano alla ricerca, il coefficiente **α**.
 
 **I dottorandi NON contano negli FTE** (`PHD_IN_FTE = False`), ma il loro **costo entra
 comunque** in HERD e nel budget: la borsa è spesa di R&S comunque la si conti.
+
+> **Il postdoc è l'unica figura con un α che si muove nel tempo, ed è una LEVA del piano
+> come `W` o `P2`.** Oggi il postdoc insegna — 0,75 come RTT e ricercatori — ed è la
+> situazione osservata: l'anno base deve riprodurla, altrimenti la calibrazione starebbe
+> misurando un sistema che non esiste. **A regime il postdoc è una posizione di sola
+> ricerca** (α = 1,00): la didattica che oggi gli si scarica addosso è esattamente ciò che
+> il piano vuole togliere. In mezzo c'è la stessa rampa `RAMP = 10` delle altre leve — la
+> didattica non si toglie a nessuno per decreto da un anno all'altro, si smette di
+> assegnarla man mano. Ne discende, in coerenza, che **la valutazione della didattica esca
+> dai concorsi RTT**: non si può pretendere didattica da chi non ha un incarico didattico.
+>
+> Il fatto che l'α di partenza sia quello di oggi ha una conseguenza importante: **l'anno
+> base non cambia**. Il gap Eurostat si chiude sui 47.340 precari di sempre, gli RTT
+> ricostruiti restano 4.734 e lo scarto dichiarato del −31,5% resta quello (§13). Tutti
+> gli effetti della leva si vedono **lungo la transizione**, non nel 2026.
+>
+> ⚠️ **E l'effetto principale è sul carico didattico, in peggio prima che in meglio.**
+> Spegnere il peso didattico del postdoc toglie ~11.800 FTE-docente dal denominatore in
+> dieci anni, mentre il ruolo cresce con i tempi lunghi della carriera: il rapporto
+> studenti/docente **sale a 21,20 nel 2036**, sopra il 19,45 di partenza, e non torna
+> stabilmente sotto la media europea (§10). È il prezzo esplicito della scelta: **la
+> didattica del postdoc va rimpiazzata, non solo tolta.**
 
 ### Il termine di paragone europeo
 
@@ -150,6 +179,12 @@ che ne esce.
 il numero che riconcilia l'FTE ricostruito con il dato Eurostat. Il MUR ne separa 25.113 (RTD-A + assegni); la stima con l'onda
 PNRR era ~35.000; il valore di chiusura sta sopra entrambi (+35%) in modo da includere sicuramente anche i borsisti.
 
+> **Perché la chiusura usa l'α di OGGI e non quello di regime.** Il postdoc arriva a α
+> 1,00 solo a fine rampa (§1). Se si chiudesse il gap con l'α di regime ne basterebbero
+> 36.331 — un numero molto più vicino alla stima PNRR — ma sarebbe **il numero sbagliato**:
+> descriverebbe il 2026 con la quota-ricerca del 2036. L'anno base va calibrato su com'è
+> il sistema oggi, e oggi i postdoc insegnano.
+
 > Il prezzo della chiusura: con 47.340 precari e `P2_HIST = 0,10` il modello
 > genera **4.734 RTT** contro i **6.915 osservati** (RTD-B + L.79/2022, MUR 2023):
 > −31,5%. Per tenerli sul dato servirebbe `P2_HIST = 0,146`, cioè una stabilizzazione
@@ -163,26 +198,40 @@ canali di ingresso del §7.
 
 ### Il postdoc non è una figura sola: incarico di ricerca e contratto di ricerca
 
-Chi inizia il postdoc **entro 6 anni dalla laurea magistrale** sta su un **incarico di
+Chi inizia il postdoc **entro 4 anni dalla laurea magistrale** sta su un **incarico di
 ricerca** — lordo amministrazione più basso ed **esente IRPEF** (art. 6 c.6
 L. 398/1989) — gli altri su un **contratto di ricerca** pieno e tassato:
 
 | figura | lordo amministrazione | IRPEF | quota delle **persone** | quota dello **stock** |
 |---|---|---|---|---|
-| **incarico di ricerca** (entro 6 anni dalla magistrale) | **30.000** | **esente** | **65%** | **32,5%** |
-| contratto di ricerca | 45.000 | tassato | 35% | 67,5% |
-| **costo medio del postdoc** | **40.125** | | | |
+| **incarico di ricerca** (entro 4 anni dalla magistrale) | **30.000** | **esente** | **53%** | **5,3%** |
+| contratto di ricerca | 45.000 | tassato | 47% | 94,7% |
+| **costo medio del postdoc** | **44.205** | | | |
 
-> ⚠️ **Le due quote non sono la stessa cosa, e confonderle è l'errore facile.** Il 65% è
-> la quota di **persone** che hanno l'opzione; ma **la finestra dei 6 anni si chiude
-> durante il postdoc** — chi entra a 32 anni la esaurisce a 33 — quindi l'incarico copre
-> solo **2,5 dei 5 anni** di permanenza. Sullo **stock**, che è ciò che il modello prezza
-> e tassa, la quota vale `0,65 × 2,5/5 = 0,325`. È la quota di **anni-persona**, non di
-> teste. Si muove con `--anni-incarico`, e a `--precari-anni` diverso si riscala da sola.
+> **La finestra è 4 anni, ed è una scelta di proposta, non un dato.** L'incarico di
+> ricerca esente è uno strumento di **ingresso**: a 6 anni copriva metà del precariato e
+> diventava un canale di sottoinquadramento stabile, a 4 resta il ponte fra dottorato e
+> primo contratto. Il modello ne paga il conto senza sconti — il postdoc medio passa da
+> 40.125 a **44.205** e la platea esente si assottiglia fino a sparire quasi del tutto.
 
-**Come è stimato il 65%.** Non è osservato: si incrociano due distribuzioni. Il postdoc
-inizia alla fine del dottorato, quindi "entro 6 anni dalla magistrale" equivale a
-"dottorato conseguito prima dei **33,2** anni" (27,2 + 6).
+> ⚠️ **Le due quote non sono la stessa cosa, e confonderle è l'errore facile.** Il 53% è
+> la quota di **persone** che hanno l'opzione; ma **la finestra si chiude durante il
+> postdoc**, quindi l'incarico copre solo **0,5 dei 5 anni** di permanenza. Sullo
+> **stock**, che è ciò che il modello prezza e tassa, la quota vale
+> `0,53 × 0,5/5 = 0,053`. È la quota di **anni-persona**, non di teste. Si muove con
+> `--anni-incarico`, e a `--precari-anni` diverso si riscala da sola.
+>
+> Il passaggio da 2,5 a 0,5 anni è una **sottrazione, non un riscalamento**: chiudere la
+> finestra due anni prima accorcia di esattamente due anni il tratto coperto di chiunque
+> resti dentro. Va detto che 2,5 era già una stilizzazione ("metà del postdoc") e non la
+> media di una distribuzione: l'agente rappresentativo del modello finisce il dottorato a
+> `ETA_FINE_PHD` = 33, cioè 5,8 anni dopo la magistrale, e sarebbe fuori finestra da
+> subito sia a 6 anni sia a 4. `ANNI_INCARICO` vive sulla **sottopopolazione** che si
+> dottora presto, non sull'agente medio, e va letto insieme alla quota di persone.
+
+**Come è stimato il 53%.** Non è osservato: si incrociano due distribuzioni. Il postdoc
+inizia alla fine del dottorato, quindi "entro 4 anni dalla magistrale" equivale a
+"dottorato conseguito prima dei **31,2** anni" (27,2 + 4).
 
 | età al conseguimento del dottorato | quota |
 |---|---|
@@ -194,12 +243,16 @@ inizia alla fine del dottorato, quindi "entro 6 anni dalla magistrale" equivale 
 
 *Fonte: [AlmaLaurea, Profilo dei Dottori di ricerca 2022, Report 2023](https://www.almalaurea.it/sites/default/files/2023-07/dottori_profilo_report2023.pdf), Fig. 3 p. 7 (5.007 dottori, 37 atenei). Età media alla laurea magistrale biennale 27,2 anni: AlmaLaurea, Profilo dei Laureati 2022.*
 
-Interpolando uniformemente dentro le classi, la quota sotto i 33,2 anni è **65,7%**.
+Interpolando uniformemente dentro le classi, la quota sotto i 31,2 anni è **53,1%**, da
+cui **0,53**. La soglia cade appena sopra la **mediana** (31,0 anni): è per questo che
+togliere due anni di finestra costa 12 punti di platea invece di qualcuno — si taglia
+**dentro** la classe più popolata, non sulla sua coda.
 
-> **La stima regge a un controllo indipendente.** Rifatta per **area disciplinare** —
-> dove l'età media al dottorato va dai 30,8 anni delle scienze di base ai 34,0 delle
-> scienze umane — e poi ripesata sulle quote di area, dà **65,6%**. Due strade diverse
-> sullo stesso dato, stesso numero: si usa **0,65**.
+> **Il controllo per area vale per la finestra a 6 anni, e non si rifà qui.** Rifatta per
+> **area disciplinare** e ripesata sulle quote di area, la stima a 6 anni dava **65,6%**
+> contro il **65,7%** aggregato: due strade diverse, stesso numero. A 4 anni servirebbero
+> le **distribuzioni** per area, non le sole medie, che non sono nella fonte. La stima
+> aggregata a 4 anni sta quindi in piedi da sola, e questo è un pezzo di verifica in meno.
 >
 > | area | età media al dottorato | quota entro 6 anni | peso |
 > |---|---|---|---|
@@ -211,16 +264,23 @@ Interpolando uniformemente dentro le classi, la quota sotto i 33,2 anni è **65,
 
 > ⚠️ **Il punto debole è l'età alla laurea magistrale**, che è una media generale mentre
 > i dottori sono una popolazione selezionata (il 68,2% ha 110 e lode contro il 42,0% dei
-> laureati) e verosimilmente si laurea prima. La sensitività:
-> **26,5 anni → 61,3% | 27,2 → 65,7% | 28,0 → 70,7%**. Si muove con `--quota-incarico`.
+> laureati) e verosimilmente si laurea prima — **e a finestra corta pesa di più**, perché
+> la soglia si sposta dentro la classe densa invece che sulla coda. La sensitività:
+> **26,5 anni → 44,5% | 27,2 → 53,1% | 28,0 → 58,2%** (a 6 anni l'escursione era
+> 61,3%–70,7%). Si muove con `--quota-incarico`.
 
 > **L'età di fine dottorato del modello è ora quella osservata.** `ETA_FINE_PHD` era 34
 > per ipotesi, ed era **incompatibile con questa stessa stima**: a 34 anni si è già a 6,8
-> anni dalla laurea magistrale, quindi nessuno sarebbe stato dentro la finestra. Ora vale
+> anni dalla laurea magistrale, quindi nessuno sarebbe stato dentro la finestra, che
+> allora era di 6 anni. Ora vale
 > **33** — i 32,6 osservati, arrotondati perché le classi della coorte sono annuali — e il
 > divario medio dalla magistrale è **5,4 anni**, coerente con un 65% che ci sta dentro.
 > Ne discendono un **ingresso in ruolo a 43 anni** invece di 44 e una **carriera di 26
 > anni** invece di 25.
+>
+> Con la finestra portata a 4 anni quella coerenza si allenta — 5,4 > 4 — ma non cambia
+> di segno: la quota a incarico non si calcola sull'età **media**, è l'integrale della
+> distribuzione sotto la soglia, e a 4 anni ci sta dentro la metà che si dottora presto.
 
 ---
 
@@ -309,14 +369,14 @@ GOVERD_TGT = 0.22 + SHIFT   # 0.23
 
 | | 2026 | 2040 | 2057 (picco) | **2070** | *2080* | obiettivo |
 |---|---|---|---|---|---|---|
-| HERD (% PIL) | 0,360 | 0,529 | 0,724 | **0,696** | *0,685* | 0,68 |
-| GOVERD (% PIL) | 0,209 | 0,225 | 0,272 | **0,256** | *0,230* | 0,23 |
-| R&S pubblica | 0,568 | 0,753 | 0,996 | **0,952** | *0,916* | 0,91 |
-| Budget pubblico totale | 0,843 | 1,131 | 1,527 | **1,451** | *1,394* | — |
+| HERD (% PIL) | 0,360 | 0,561 | 0,724 | **0,697** | *0,686* | 0,68 |
+| GOVERD (% PIL) | 0,207 | 0,225 | 0,269 | **0,256** | *0,230* | 0,23 |
+| R&S pubblica | 0,567 | 0,786 | 0,993 | **0,953** | *0,916* | 0,91 |
+| Budget pubblico totale | 0,843 | 1,159 | 1,501 | **1,432** | *1,373* | — |
 
-Il **GOVERD è a target dal 2030**; l'**HERD arriva a 0,68% nel 2054** e lo supera
-durante la gobba demografica prima di rientrarci. Il **GERD tocca il 3% nel 2053**, ma
-vedi l'avvertenza qui sotto.
+Il **GOVERD è a target dal 2030**; l'**HERD supera lo 0,68% durante la gobba
+demografica** e ci rientra sopra a regime. Il **GERD tocca il 3% nel 2053**, ma vedi
+l'avvertenza qui sotto.
 
 È l'unica tabella del documento che porta anche il 2080, perché è quella in cui la
 differenza conta: **al 2070 la spesa è ancora ~0,03 punti sopra il bersaglio su
@@ -332,7 +392,7 @@ Il modello tiene **due misure di costo distinte**:
   FTE-R&S + le attrezzature. La metà-didattica dello stipendio di un professore **non**
   è HERD.
 - **Budget pubblico** = **stipendi pieni** (didattica compresa, TA in teste) +
-  attrezzature. È ciò che paga davvero il pubblico, e nel 2080 vale **1,395% del PIL**
+  attrezzature. È ciò che paga davvero il pubblico, e nel 2080 vale **1,371% del PIL**
   contro lo 0,915% di R&S.
 
 Con l'uplift `W` il personale è moltiplicato in entrambe; le attrezzature no.
@@ -387,11 +447,11 @@ gonfiare il *flusso* d'ingresso.
 |---|---|---|
 | `P2` — stabilizzazione dei postdoc | 0,10 storico → **0,50 già dal 2026** (pavimento) | **0,60** |
 | `P1` effettivo — dottori che proseguono | 0,71 | **0,42** |
-| Ingressi in tenure track, teste/anno | **2.489** *(6.276 nel 2026 col piano straordinario di transizione)* | **4.811** |
-| Stock di RTT (teste) | 4.734 | **18.522** |
-| **Componente precaria** (postdoc su personale di ricerca) | **39,0%** | **17,7%** |
-| Dottori che escono dall'accademia, all'anno | 4.601 | 9.928 |
-| Dottorandi (teste) | 47.000 | 51.056 |
+| Postdoc che passano a tenure track, teste/anno (`P2 × postdoc / 5`) | **4.734** *(col pavimento `P2_MIN` già attivo)* | **3.541** |
+| Stock di RTT (teste) | 4.734 | **17.706** |
+| **Componente precaria** (postdoc su personale di ricerca) | **39,0%** | **17,6%** |
+| Dottori che escono dall'accademia, all'anno | 4.601 | 9.546 |
+| Dottorandi (teste) | 47.000 | 49.095 |
 
 **Il pavimento sulla stabilizzazione** (`P2_MIN = 0,50`) scavalca la rampa: modella un
 **piano straordinario** che agisce subito invece di arrivare a regime in dieci anni.
@@ -401,10 +461,10 @@ l'uscita totale dal compartimento vale `1/precari_anni` qualunque sia P2. Il pav
 non svuota il precariato più in fretta — **sposta persone dalla porta d'uscita alla
 tenure track**. È una redistribuzione a somma zero fra le due porte.
 
-**Perché a regime gli ingressi in tenure track sono 4.811 e non di più.** Non è una
-scelta: è il ruolo che li determina. Un organico universitario di 98.545 teste che dura
-26 anni richiede 3.790 ingressi l'anno per stare in piedi (infatti lo stock di RTT,
-18.522 su 5 anni di contratto, ne immette 3.704), più ~1.100 dal ramo enti.
+**Perché a regime gli ingressi in tenure track sono quelli e non di più.** Non è una
+scelta: è il ruolo che li determina. Un organico universitario di 94.484 teste che dura
+26 anni richiede ~3.630 ingressi l'anno per stare in piedi (infatti lo stock di RTT,
+17.706 su 5 anni di contratto, ne immette 3.541), più quelli del ramo enti.
 Il numero di posti di tenure track **non** è libero — è lo stock di ruolo diviso la
 durata della carriera. Per aprirne di più bisogna allargare il ruolo (più spesa) o
 accorciare la carriera, non ritoccare `P2`.
@@ -445,30 +505,36 @@ comprime, **l'aggiustamento lo paga tutto la filiera MUR**.
 
 | | 2026 | quota | 2080 | quota |
 |---|---|---|---|---|
-| Professori ordinari | 16.788 | 16,8% | 32.980 | **22,3%** |
-| Professori associati | 26.258 | 26,3% | 32.717 | **22,1%** |
-| **Ricercatori di ruolo** (`ric_uni`) | 4.831 | 4,8% | **32.848** | **22,2%** |
-| RTT (tenure track) | 4.734 | 4,7% | 18.522 | **12,5%** |
-| Postdoc / precari | 47.340 | **47,4%** | 30.867 | **20,9%** |
-| **Totale** | **99.951** | | **147.934** | |
+| Professori ordinari | 16.788 | 16,8% | 30.784 | **22,1%** |
+| Professori associati | 26.258 | 26,3% | 30.754 | **22,0%** |
+| **Ricercatori di ruolo** (`ric_uni`) | 4.831 | 4,8% | **30.769** | **22,1%** |
+| RTT (tenure track) | 4.734 | 4,7% | 17.702 | **12,7%** |
+| Postdoc / precari | 47.340 | **47,4%** | 29.502 | **21,1%** |
+| **Totale** | **99.951** | | **139.511** | |
 
 **Il ribaltamento è questo**: si passa da un sistema in cui **quasi metà delle persone è
 precaria** a uno in cui le cinque posizioni pesano **circa un quinto ciascuna**, e il
-precariato è il segmento più piccolo assieme agli associati.
+precariato è il segmento più piccolo assieme agli RTT.
 
 ### Università — FTE-ricerca
 
 | | 2026 | 2070 |
 |---|---|---|
-| Professori PO/PA | 33,5% | 34,8% |
-| Ricercatori di ruolo | 5,6% | **26,1%** |
-| RTT | 5,5% | 14,7% |
-| Postdoc | **55,3%** | 24,5% |
-| **FTE totali** | **64.202** | **94.526** |
+| Professori PO/PA | 33,5% | 32,2% |
+| Ricercatori di ruolo | 5,6% | **24,1%** |
+| RTT | 5,5% | 13,6% |
+| Postdoc | **55,3%** | 30,1% |
+| **FTE totali** | **64.202** | **97.901** |
 
 In FTE il ribaltamento è ancora più netto: **il postdoc smette di essere il motore della
 ricerca universitaria italiana**. Oggi produce il 55% degli FTE; a fine transizione il
-25%, esattamente quanto i ricercatori di ruolo.
+30%, poco più dei professori.
+
+> ⚠️ **Qui i due lati della leva α si vedono insieme.** In FTE il postdoc del 2070 pesa
+> con α 1,00 e non 0,75, quindi la sua quota scende **meno** di quanto scendano le teste
+> (da 47.340 a 29.502, §7). Non è un peggioramento della composizione: è la stessa
+> persona che conta di più come ricercatore perché non insegna più. Il rovescio sta in
+> §10 — quella didattica non è sparita, è passata a qualcun altro.
 
 
 ### Enti pubblici di ricerca
@@ -510,17 +576,17 @@ giovane costa poco e uno vecchio costa molto **senza che nessun parametro debba 
 
 | Figura | costo lordo ente (EUR/anno) |
 |---|---|
-| Professore, coorte 2026 | **110.541** |
-| Professore, coorte 2070 | **122.751** |
+| Professore, coorte 2026 | **111.468** |
+| Professore, coorte 2070 | **122.823** |
 | Ricercatore universitario, a regime | 72.040 |
 | Ruolo EPR, a regime | 75.217 |
 | RTT | 55.000 |
-| **Postdoc università, media pesata** | **40.125** (32,5% incarico a 30.000 + 67,5% contratto a 45.000) |
+| **Postdoc università, media pesata** | **44.205** (5,3% incarico a 30.000 + 94,7% contratto a 45.000) |
 | Contratto di ricerca EPR (a regime) | 45.000 |
 | Dottorando (borsa + contributi) | 22.000 → 30.487 |
 | TA (per testa) | 35.000 × 1,6 = 56.000 |
 
-Il professore **rincara dell'11,0%** lungo la transizione: la soglia di promozione si
+Il professore **rincara del 10,2%** lungo la transizione: la soglia di promozione si
 accorcia, quindi chi è promosso passa più anni sulla scala PO e sale più in alto.
 
 ### Due parametri della coorte ricavati da USTAT, non assunti
@@ -593,7 +659,7 @@ contro docenti +13,6%), e la regola recupera quel deficit invece di proiettarlo.
 > proporzionale puro).
 
 **Il tetto.** `TA_CAP = 90.000` FTE totali (università + enti). Non è decorativo: **morde
-davvero, fra il 2055 e il 2063**, quando la gobba demografica dell'organico di ricerca
+davvero, fra il 2054 e il 2069**, quando la gobba demografica dell'organico di ricerca
 spingerebbe il TA oltre quel livello. Sopra il tetto il TA viene riscalato
 proporzionalmente fra i due rami.
 
@@ -608,14 +674,14 @@ precedente.)*
 
 | | 2026 | 2050 | 2057 (tetto) | 2070 |
 |---|---|---|---|---|
-| TA università (FTE) | 31.357 | 56.836 | 65.198 | **63.941** |
-| TA enti (FTE) | 17.537 | 19.927 | 24.802 | **22.010** |
-| **TA totale (FTE)** | **48.894** | 76.763 | **90.000** | **85.950** |
-| TA totale (teste) | 86.911 | 136.448 | 159.978 | **152.779** |
-| Quota TA sul personale R&S | 34,7% | 39,5% | 40,2% | **40,7%** |
-| TA per FTE-ricercatore | 0,53 | — | — | **0,69** |
+| TA università (FTE) | 31.357 | 62.272 | 66.339 | **67.566** |
+| TA enti (FTE) | 17.537 | 19.927 | 23.661 | **22.010** |
+| **TA totale (FTE)** | **48.894** | 82.199 | **90.000** | **89.576** |
+| TA totale (teste) | 86.911 | 146.112 | 159.978 | **159.224** |
+| Quota TA sul personale R&S | 34,7% | 40,2% | 39,4% | **41,0%** |
+| TA per FTE-ricercatore | 0,53 | — | — | **0,70** |
 
-**+76% di personale tecnico-amministrativo della ricerca**, quasi 66.000 teste in più.
+**+83% di personale tecnico-amministrativo della ricerca**, oltre 72.000 teste in più.
 Quasi tutta la crescita è nel ramo universitario: il TA degli enti cresce del 16% e
 poi rientra, perché rientra l'organico di ricerca che lo giustifica.
 
@@ -636,28 +702,55 @@ Le stesse persone dei conteggi di ricerca, pesate per il **complemento** della
 quota-ricerca: chi fa ricerca al 50% insegna al 50%, chi la fa al 75% insegna al 25%. Il
 peso si ricava da `ALPHA` invece di essere riscritto a mano, quindi se α cambia il
 carico didattico segue. **I dottorandi restano fuori**: fanno tutorato, non sono docenti
-nell'indicatore.
+nell'indicatore. **Il postdoc invece c'è, con un peso che si spegne**: 0,25 nel 2026 come
+oggi, 0,00 dal 2036, rampato su dieci anni (§1).
 
-| | 2026 | 2050 | 2070 |
-|---|---|---|---|
-| **Docenti in FTE didattici** | **35.749** | 50.148 | **53.408** |
-| Studenti per docente (FTE), studenti fermi | 19,45 | 13,87 | **13,02** |
-| idem, studenti che seguono la demografia | 19,45 | 13,20 | 11,59 |
+| | 2026 | 2036 (fine rampa) | 2050 | 2070 |
+|---|---|---|---|---|
+| **Docenti in FTE didattici** | **35.749** | 32.806 | 41.573 | **43.795** |
+| Studenti per docente (FTE), studenti fermi | 19,45 | **21,20** | 16,73 | **15,88** |
+| idem, studenti che seguono la demografia | 19,45 | 20,71 | 15,92 | 14,13 |
 
-**+49% di capacità didattica**, e il rapporto studenti/docente scende sotto la media
-europea di 14,3 nel **2049**.
+### ⚠️ Il traguardo europeo non è raggiunto, e questa è la conclusione principale della sezione
+
+Il rapporto **peggiora prima di migliorare**: sale a **21,20 nel 2036**, sopra il 19,45 di
+partenza, scende sotto 14,3 solo nel **2057** al culmine della gobba demografica, e
+**risale a 15,88 nel 2070** e 16,21 a regime. Non è un errore del modello: è l'aritmetica
+della scelta fatta in §1.
+
+- Spegnere il peso didattico del postdoc **toglie ~11.800 FTE-docente** dal denominatore
+  in dieci anni (47.340 × 0,25).
+- Nello stesso decennio il ruolo cresce poco, perché fra ingresso in dottorato e ingresso
+  in ruolo passano tredici anni (§11): le assunzioni del piano arrivano dopo.
+- Il denominatore quindi **cala** prima di risalire, mentre gli studenti sono esogeni e
+  restano 695.325.
+
+**La lettura di policy è netta: la didattica del postdoc va rimpiazzata, non solo tolta.**
+Il piano come è tarato la rimpiazza in gran parte ma non del tutto — chiude il divario di
+*ricerca*, non quello di *didattica*. Il modello dice anche di quanto manca: per stare a
+14,3 a studenti fermi servirebbero **48.624 FTE-docente** contro i 42.887 del 2080, cioè
+**~5.700 FTE-docente in più — l'equivalente di ~11.500 professori a α 0,50**. A demografia
+proiettata il divario quasi si chiude da solo (14,02 nel 2080), ma è il calo degli
+studenti a chiuderlo, non il piano.
+
+> **Perché il livello di partenza è 35.749 e non 23.639.** Gli **studenti impliciti**
+> (695.325) sono ricavati come `19,45 × FTE-docente(2026)`, e l'FTE-docente del 2026 deve
+> includere la didattica che i postdoc **fanno davvero oggi**. Calibrare il denominatore
+> sul postdoc già a α 1,00 darebbe 459.779 studenti impliciti e un rapporto che scende a
+> 10,66: un risultato molto più bello e **falso**, perché avrebbe fatto sparire per
+> ipotesi la didattica che il piano deve invece riassegnare a qualcuno.
 
 > **In FTE didattici il rapporto si muove molto meno che in teste**, ed è l'effetto che
-> conta. La transizione sposta persone dal precariato (peso didattico 0,25) al ruolo
-> (peso 0,50): **ogni stabilizzazione vale il doppio in capacità didattica** di quanto
-> valga in teste. È invisibile a chi conta le cattedre.
+> conta. Due forze opposte: la transizione sposta persone dal precariato al ruolo (peso
+> 0,25 → 0,50, **2×**), ma la stessa transizione toglie al postdoc il suo 0,25. Nei primi
+> dieci anni vince la seconda.
 
 > ⚠️ **Qui il compromesso si paga, ed è giusto dirlo.** Lo scenario ERA — tutto cattedre,
-> paghe ferme — arriva a **10,37** studenti per docente contro i **13,02** di ERA PPP,
-> perché un ricercatore a α 0,75 insegna metà di un professore. **Convertire un terzo
-> del ruolo a profilo ricercatore compra FTE di ricerca e costa FTE di didattica.** Il
-> saldo resta ampiamente positivo rispetto a oggi (19,45 → 13,02) e sotto la media
-> europea, ma il confronto onesto è con l'alternativa, non con il punto di partenza.
+> paghe ferme — arriva a **12,59** studenti per docente nel 2080 contro i **16,21** di
+> ERA PPP, perché un ricercatore a α 0,75 insegna metà di un professore. **Convertire un
+> terzo del ruolo a profilo ricercatore compra FTE di ricerca e costa FTE di didattica**,
+> e sommato all'uscita del postdoc dalla didattica è ciò che manda ERA PPP sopra il
+> traguardo. Il confronto onesto è con l'alternativa, non col punto di partenza.
 
 *NB: il 19,45 di partenza e il traguardo 14,3 devono venire dallo stesso indicatore,
 altrimenti il confronto non è omogeneo. Gli studenti sono **esogeni**: il modello non li
@@ -674,13 +767,13 @@ su `RAMP = 10` anni (la borsa di dottorato su 5).
 | anno | organico totale | densità (pop. 2026) | spesa aggiuntiva | pensionamenti |
 |---|---|---|---|---|
 | 2026 | 183.847 | 109,2 | — | 670 |
-| 2035 | 208.237 | 130,5 | 6,4 mld | 2.658 |
-| 2041 | 208.370 | 132,8 | 6,3 mld | 2.658 |
-| 2050 | 228.299 | 149,5 | 9,2 mld | 670 |
-| **2057** | **254.468** | **169,8** | **15,0 mld** | 4.734 |
-| 2065 | 244.516 | 164,0 | 14,1 mld | 4.101 |
-| **2070** | **240.162** | **160,8** | **13,3 mld** | 4.155 |
-| *2080 (regime)* | *233.905* | *158,8* | *12,0 mld* | *3.752* |
+| 2035 | 206.058 | 144,4 | 6,9 mld | 2.659 |
+| **2036** (fine rampa) | 205.692 | 145,2 | **7,2 mld** | 2.798 |
+| 2041 | 204.515 | 144,0 | 6,7 mld | 2.659 |
+| 2050 | 222.824 | 158,2 | 9,3 mld | 670 |
+| **2057** (picco) | **247.841** | **177,1** | **14,3 mld** | 4.734 |
+| **2070** | **231.964** | **166,5** | **12,8 mld** | 4.029 |
+| *2080 (regime)* | *225.540* | *164,4* | *11,5 mld* | *3.593* |
 
 **Tre fatti sulla forma della curva.**
 
@@ -690,13 +783,13 @@ su `RAMP = 10` anni (la borsa di dottorato su 5).
    l'inizio. Non è un piano quinquennale.
 2. **La spesa sale prima della densità.** Stabilizzare e pagare costa subito; la
    capacità arriva con dieci anni di ritardo.
-3. **C'è un plateau, poi una gobba.** Fra il 2035 e il 2044 la spesa resta ferma sui 6,3
+3. **C'è un plateau, poi una gobba.** Fra il 2035 e il 2044 la spesa resta ferma sui 6,7-7,2
    mld: l'onda dei pensionamenti della coorte di oggi (picco ~2038) restituisce
    esattamente quello che le nuove assunzioni consumano. Poi, fra il 2050 e il 2057, i
    pensionamenti crollano a 670 l'anno mentre le assunzioni corrono a ritmo di regime, e
-   l'organico sale del **+8,8% sopra lo stato stazionario**. Nel 2057 la spesa tocca
-   15,0 mld contro i 12,0 di regime: **3,0 mld di gobba per una quindicina d'anni.**
-   **Nel 2070 la gobba è ancora in corso di riassorbimento** (+2,7% di organico, +1,3 mld
+   l'organico sale del **+9,9% sopra lo stato stazionario**. Nel 2057 la spesa tocca
+   14,3 mld contro gli 11,5 di regime: **2,8 mld di gobba per una quindicina d'anni.**
+   **Nel 2070 la gobba è ancora in corso di riassorbimento** (+2,8% di organico, +1,3 mld
    di spesa sopra il regime): è la ragione per cui i valori riportati in questo documento
    sono leggermente più alti di quelli di stato stazionario.
 
@@ -705,6 +798,24 @@ su `RAMP = 10` anni (la borsa di dottorato su 5).
 > resta 26 anni — cioè esattamente il meccanismo che ha prodotto l'attuale campana dei
 > 50-62enni. **Distribuire la stabilizzazione su più anni è l'unico modo di non
 > riprodurre nel 2060 il problema che si sta risolvendo oggi.**
+
+> **C'è anche un gradino minore, nel 2036, e non è demografico.** Nel 2036 tutte le leve
+> arrivano a regime **insieme** — `P2`, flusso PhD, paghe `W`, α del postdoc — e la spesa
+> fa uno scalino prima che l'onda dei pensionamenti la riporti giù: senza correzioni
+> sarebbe 7,53 mld contro i 6,80 del 2041, cioè **0,73 mld di ampiezza**. È un artefatto
+> della sincronia delle rampe, non un fatto del sistema, e per questo il modello gli
+> dedica una **seconda finestra di blocco degli scatti** (2033-2034, due anni contro i
+> cinque della finestra principale): il picco scende a **7,19 mld** e l'ampiezza a
+> **0,54** (−26%). Lo stato stazionario non si muove di un euro.
+>
+> ⚠️ **Il blocco morde in ritardo, ed è ciò che ne determina la collocazione.** Il costo
+> per testa dell'anno *Y* dipende dall'anzianità maturata *fino a* Y: bloccare gli scatti
+> **nel 2036** non abbassa la spesa del 2036, la abbassa dal 2038 — peggiorando il gradino
+> invece di smussarlo (provato: da 0,73 a 0,83). In più le scale stipendiali sono a
+> gradini triennali, quindi mezzo anno di anzianità persa spesso non fa cambiare classe a
+> nessuno e non si vede affatto. Per abbassare il picco del 2036 la finestra deve aprirsi
+> nel **2033** — lo stesso motivo per cui la finestra grande si apre nel 2045 per una
+> gobba che sta nel 2057.
 
 **Le due densità, e perché vanno tenute separate.** La popolazione italiana scende del
 13,8% fra il 2026 e il 2080 (proiezione **SSP2**, Wittgenstein Centre / IIASA WIC2023 —
@@ -716,8 +827,8 @@ densità più alta** col passare del tempo.
 | `densita` | popolazione dell'anno (SSP2) | la grandezza confrontabile con gli altri paesi in quell'anno |
 | `densita_pop2026` | popolazione 2026 fissa | isola l'effetto organico da quello demografico; **è su questa che sono definiti i target** |
 
-Per questo lo scenario, che ha come densità universitaria di riferimento **158**, al 2070
-sta a **160,8 a demografia ferma** e a **180,7** con la popolazione proiettata. Il
+Per questo lo scenario, che ha come densità universitaria di riferimento **164**, al 2070
+sta a **166,5 a demografia ferma** e a **187,1** con la popolazione proiettata. Il
 confronto col riferimento usa sempre `densita_pop2026`.
 
 ---
@@ -750,55 +861,59 @@ unitari**, non solo un passaggio di calcolo.
 
 | | 2026 | 2070 |
 |---|---|---|
-| Monte stipendi lordo ente | 16,05 mld | **28,71 mld** |
-| **IRPEF erariale** | **2,35 mld** | **4,80 mld** |
-| Aliquota IRPEF media effettiva | 22,4% | **25,7%** |
-| IRPEF / monte stipendi | 14,6% | 16,7% |
-| + addizionali, contributi, IRAP | 49,6% | **53,1%** |
+| Monte stipendi lordo ente | 16,23 mld | **28,52 mld** |
+| **IRPEF erariale** | **2,40 mld** | **4,78 mld** |
+| Aliquota IRPEF media effettiva | 22,7% | **25,8%** |
+| IRPEF / monte stipendi | 14,8% | 16,7% |
+| + addizionali, contributi, IRAP | 51,0% | **53,2%** |
 
 **Il costo del piano al netto del rientro**, che è la lettura di policy:
 
 | | 2070, mld/**anno** | cumulato 2026-2070, mld |
 |---|---|---|
-| Maggior costo lordo rispetto al 2026 | **13,3** | **419** |
-| al netto della sola IRPEF | 10,9 | 344 (18% rientra) |
-| al netto di tutti i prelievi | 6,3 | 198 (53%) |
+| Maggior costo lordo rispetto al 2026 | **12,8** | **417** |
+| al netto della sola IRPEF | 10,5 | 342 (18% rientra) |
+| al netto di tutti i prelievi | 6,0 | 197 (53%) |
 
 > ⚠️ **Le due colonne non sono la stessa grandezza.** Il piano vale ~13 mld *all'anno* nel
-> 2070; i 419 mld sono la **somma di 45 annualità** in EUR2026 costanti, non
+> 2070; i 417 mld sono la **somma di 45 annualità** in EUR2026 costanti, non
 > attualizzata, e crescono da zero lungo la transizione. Confrontarli con una cifra
 > annua non ha senso.
 
-> **L'incarico di ricerca abbassa il retroflusso, non solo il costo.** Rispetto a un
-> postdoc tutto su contratto di ricerca, il piano costa meno (40.125 invece di 45.000 per
-> testa) ma ne rientra anche meno: la quota che rientra come IRPEF scende dal 19% al
-> **18%**, e quella complessiva dal 55% al **53%**. È l'aritmetica dell'esenzione — un
-> euro esente è un euro che non torna — e va messa accanto al risparmio, non al posto suo.
+> **L'incarico di ricerca non muove quasi più niente, ed è il risultato della finestra a
+> 4 anni.** Con la finestra a 6 anni copriva il 32,5% degli anni-persona e valeva un
+> punto di retroflusso; a 4 anni ne copre il **5,3%**, il postdoc medio costa 44.205
+> invece di 40.125 — cioè quasi il contratto pieno da 45.000 — e la leva è di fatto
+> spenta. L'aritmetica dell'esenzione non cambia (un euro esente è un euro che non
+> torna): cambia la sua base, che ora è quasi nulla.
 
 **Due risultati non ovvi.**
 
 - Il ritorno fiscale cresce **più che proporzionalmente** alla spesa: l'aliquota media
-  effettiva sale dal 22,4% al 25,7%, perché il piano non aggiunge solo teste — le sposta
+  effettiva sale dal 22,7% al 25,8%, perché il piano non aggiunge solo teste — le sposta
   dal precariato al ruolo e alza le paghe, e l'IRPEF è progressiva.
-- **Le borse di dottorato non tornano.** Nel 2070 sono **1,56 mld/anno** completamente
+- **Le borse di dottorato non tornano.** Nel 2070 sono ~**1,5 mld/anno** completamente
   esenti: alzare una borsa costa allo Stato quasi il doppio, in termini netti, di alzare
-  uno stipendio dello stesso importo lordo — e lo stesso vale ora per gli **incarichi di
-  ricerca**, che aggiungono altri **0,35 mld/anno** di massa esente (10.032 teste).
+  uno stipendio dello stesso importo lordo. Gli **incarichi di ricerca**, dopo la
+  riduzione della finestra, non sono più la seconda voce esente che erano: nel 2026 sono
+  **2.509 teste** contro le 15.386 di prima.
 
 **Le due figure del postdoc, viste dal fisco.** Un incarico di ricerca a 30.000 di lordo
 amministrazione **non paga IRPEF**; un contratto di ricerca a 45.000 ne paga **3.995**.
 La quota a incarico è quindi una leva **di spesa prima ancora che di fisco**: sposta
 15.000 EUR di costo per testa e 3.995 di gettito, nella stessa direzione.
 
-**La sensitività.** L'incertezza sta nell'età alla laurea magistrale (§2), e l'effetto è
-modesto — sia perché i postdoc pagano comunque poca IRPEF, sia perché il vincolo dei
-2,5 anni **dimezza già** l'ampiezza della forchetta:
+**La sensitività.** L'incertezza sta nell'età alla laurea magistrale (§2). Sul gettito
+l'effetto è ormai **nullo a tre cifre significative**, e non perché l'incertezza sia
+piccola — è anzi più ampia che a 6 anni — ma perché il vincolo di 0,5 anni riduce la
+quota di stock a un ventesimo: qualunque ipotesi sull'età si scelga, la platea esente
+non arriva al 6%.
 
 | quota **persone** | quota **stock** | ipotesi sull'età alla magistrale | costo medio postdoc | IRPEF 2026 | cum. IRPEF |
 |---|---|---|---|---|---|
-| 0,613 | 0,306 | 26,5 anni | 40.402 | 2,35 mld | 228,6 mld |
-| **0,650** | **0,325** | **27,2 anni — in uso** | **40.125** | **2,35 mld** | **228,4 mld** |
-| 0,707 | 0,353 | 28,0 anni | 39.698 | 2,34 mld | 228,0 mld |
+| 0,445 | 0,045 | 26,5 anni | 44.332 | 2,40 mld | 230,9 mld |
+| **0,530** | **0,053** | **27,2 anni — in uso** | **44.205** | **2,40 mld** | **230,8 mld** |
+| 0,582 | 0,058 | 28,0 anni | 44.127 | 2,40 mld | 230,8 mld |
 
 *(cumulati sull'orizzonte pieno 2026-2080)*
 
@@ -818,29 +933,29 @@ residuo**, in quest'ordine obbligato (invertirli dà una calibrazione incoerente
 | Parametro | Valore ricavato | Cosa impone |
 |---|---|---|
 | `ANNI_DA_ASSOCIATO` | **9,82 anni** | riproduce la quota di ordinari MUR 2023 (0,390) |
-| `LAMBDA_HE` (quota-lavoro dell'HERD) | **0,861** | riproduce HERD 0,36% ISTAT → attrezzature = **14% dell'HERD** |
-| `SUPPORTO` (residuo non nominato) | **+2,1%** | chiude quel che resta sul costo-ricerca |
+| `LAMBDA_HE` (quota-lavoro dell'HERD) | **0,879** | riproduce HERD 0,36% ISTAT → attrezzature = **12% dell'HERD** |
+| `SUPPORTO` (residuo non nominato) | **+1,8%** | chiude quel che resta sul costo-ricerca |
 | `OVH_EPR_SUPP` / `OVH_EPR_ATTR` | **460 / 1.381 mln** | riproducono GOVERD 0,21% |
 
 > **`LAMBDA_HE` non è più un'assunzione.** Col TA esplicito il costo del personale di
 > ricerca è tutto misurato, quindi la ripartizione lavoro/attrezzature dell'HERD
 > osservato **diventa un residuo**. Il vecchio 0,70 non sta in piedi coi TA veri:
 > lascerebbe 237 mln per 31.357 FTE di tecnici, cioè 7.568 EUR a testa-anno. Il valore
-> ricavato — 0,861 — dice che l'università italiana spende in strumenti il 14%
+> ricavato — 0,879 — dice che l'università italiana spende in strumenti il 12%
 > dell'HERD. Se uscisse sopra 0,90 varrebbe la pena sospettare i costi unitari, non
 > accettarlo.
 
-> ⚠️ **La calibrazione è un sistema chiuso, e questo ha una conseguenza controintuitiva.**
-> Introdurre l'incarico di ricerca ha reso il postdoc più economico (da 45.000 a 40.125),
-> ma **non ha liberato spazio per assumere di più**: siccome l'HERD del 2026 è un'ancora
-> fissa allo 0,36%, la spesa che il personale non assorbe più viene **riattribuita ai
-> residui** — `LAMBDA_HE` scende da 0,880 a 0,861 (attrezzature dal 12% al 14% dell'HERD)
-> e `SUPPORTO` sale da 1,8% a 2,1%. Il risparmio sul postdoc non diventa personale in
-> più: diventa strumenti. Che la densità di riferimento risulti comunque **158** invece
-> di 160 dipende dall'altro cambiamento — la carriera di ruolo passata da 25 a 26 anni,
-> che rende ogni ingresso più "costoso" in anni-persona di ruolo.
+> ⚠️ **La calibrazione è un sistema chiuso, e il meccanismo va nei due sensi.** Quando
+> l'incarico di ricerca fu introdotto a finestra piena, il postdoc costava meno (40.125) e
+> il risparmio **non liberava spazio per assumere**: con l'HERD 2026 ancorato allo 0,36%,
+> la spesa che il personale non assorbiva veniva riattribuita ai residui, `LAMBDA_HE`
+> scendeva a 0,861 e `SUPPORTO` saliva a 2,1% — il risparmio diventava strumenti.
+> Accorciando la finestra a 4 anni il postdoc torna a costare quasi il pieno (44.205) e i
+> residui si riassorbono nell'altro senso: `LAMBDA_HE` risale a **0,879** e `SUPPORTO`
+> torna a **+1,8%**. **L'ancora HERD non si muove**: a cambiare è sempre e solo la
+> ripartizione fra personale, strumenti e residuo.
 
-> **Il `SUPPORTO` resta piccolo**: da +12% (quando assorbiva tutto il TA) a **+2,1%**.
+> **Il `SUPPORTO` resta piccolo**: da +12% (quando assorbiva tutto il TA) a **+1,8%**.
 > È la misura di quanto il TA esplicito abbia spiegato di ciò che prima era un residuo
 > senza nome.
 
@@ -870,17 +985,22 @@ corrente:
 | **Pavimento sulla stabilizzazione** (`P2_MIN = 0,50`) | **accesa** | piano straordinario, ~15.000 stabilizzati nel primo triennio |
 | **Pavimento sul GOVERD** (`GOVERD_MIN`) | **acceso** | 3.261 assunzioni straordinarie in ruolo fra 2040 e 2049, per non far scendere la spesa del ramo enti sotto lo 0,23% una volta raggiunto |
 | **Tetto TA** (`TA_CAP = 90.000`) | **acceso** | morde fra il 2055 e il 2062 |
-| **Blocco degli scatti** (`SCATTI_BLOCCO_*`) | **acceso** ⚠️ | 5 anni dal 2045 al 2049, recupero 0%: **−0,024 pp di HERD e −0,95 mld di budget nel 2055**; stato stazionario invariato |
+| **Blocco degli scatti, finestra 1** (`SCATTI_BLOCCO_*`) | **acceso** ⚠️ | 5 anni dal 2045 al 2049, recupero 0%: **−0,024 pp di HERD e −0,95 mld di budget nel 2051**; stato stazionario invariato |
+| **Blocco degli scatti, finestra 2** (`SCATTI_BLOCCO2_*`) | **acceso** ⚠️ | 2 anni dal 2033 al 2034, recupero 0%: **−0,007 pp di HERD e −0,28 mld nel 2036**; smussa il gradino di fine rampa (§11) |
 | **Prepensionamento** (`PREPENS_ANNI = 0`) | **spenta** | — |
 | **Inviluppo delle attrezzature** (`ATTREZZ_INVILUPPO = False`) | **spenta** | — |
 
 > ⚠️ **Il blocco degli scatti è acceso di default, e probabilmente non dovrebbe.** È una
-> leva di *austerità* — cinque anni di anzianità non maturata, senza recupero — dentro
-> uno scenario che serve a dimensionare un piano di espansione. Costa ~0,95 mld nel 2055 e
-> non cambia lo stato stazionario, quindi non falsifica i risultati di regime, ma
-> **abbassa la traiettoria negli anni centrali**. Si spegne con
-> `--scatti-blocco-anni 0`. *(Il testo di aiuto della CLI dice "default 5 = spento": è
-> sbagliato, `_blocco_on()` accende la leva per qualunque valore ≥ 1.)*
+> leva di *austerità* — sette anni complessivi di anzianità non maturata, senza recupero —
+> dentro uno scenario che serve a dimensionare un piano di espansione. Costa ~0,95 mld nel
+> 2051 e ~0,28 nel 2036 e non cambia lo stato stazionario, quindi non falsifica i
+> risultati di regime, ma **abbassa la traiettoria negli anni centrali**. Si spegne con
+> `--scatti-blocco-anni 0 --scatti-blocco2-anni 0`.
+>
+> **Le due finestre hanno bersagli diversi**, e vanno valutate separatamente: la prima
+> lavora sulla gobba demografica del 2057, la seconda sul gradino di fine rampa del 2036,
+> che è un artefatto della sincronia delle rampe e non un fatto demografico. Chi ritiene
+> accettabile smussare il secondo ma non la prima può tenere solo la finestra piccola.
 
 ### Le due leve spente, in breve
 
@@ -913,16 +1033,17 @@ speso.
 - **α docente = 0,50 è il parametro più fragile** dell'intero modello, e viene da
   un'indagine ISTAT ferma al **2004-05**. Tutta la densità dipende linearmente da lui.
 - **Lo scarto sugli RTT (−31,5%)** è l'unica verifica libera della calibrazione, e non
-  passa. È il prezzo della chiusura sui precari.
+  passa. È il prezzo della chiusura sui precari (§2), e **non è toccato** dalla rampa su
+  α del postdoc, che nell'anno base vale ancora 0,75.
 - **`TA_ELAST = 2,2` è una decisione, non una stima**, e porta la quota di TA in
   direzione opposta alla media europea (§9).
 - **Il BERD non è modellato**: il 3% del PIL è per due terzi una scommessa
   sull'industria, su cui nessuna leva qui discussa agisce.
 - **Compartimento singolo per i precari**: a permanenze molto lunghe (>9-10 anni) perde
   realismo, perché nessuno resta davvero con attrito costante.
-- **La quota a incarico di ricerca è media, non per coorte**: il modello applica il 32,5%
-  di anni-persona uniformemente allo stock, invece di seguire ogni persona lungo la sua
-  finestra dei 6 anni. Sulle masse è equivalente; sul profilo temporale del singolo no.
+- **La quota a incarico di ricerca è media, non per coorte**: il modello tiene il 5,3%
+  dei postdoc su incarico per tutto il periodo, invece del 53% che ci sta per 0,5 anni e
+  poi passa a contratto. Stessi anni-persona e stesse masse; profilo individuale diverso.
 - **Marginale ≈ medio e mix costante**: è una stima di primo ordine. Rendimenti
   decrescenti e colli di bottiglia (spazi, strumenti, tutor) non sono modellati.
 - **Gli studenti sono esogeni**: il rapporto studenti/docente è un indicatore portato
@@ -961,7 +1082,8 @@ ERA_PPP_ric** (`ERA_PPP_ric_trend.png`, `_ffo.png`, `_organico.png`, `_spesa.png
 --rtt-anni 3             tenure track rapida (ex RTD-B) invece dei 5 anni L.79/2022
 --p2-tgt 1.0             nessun filtro a fine postdoc: tutta la selezione sul dottorato
 --ta-elast 0.4           TA come overhead invece che come obiettivo
---scatti-blocco-anni 0   spegne il blocco degli scatti (acceso di default)
+--scatti-blocco-anni 0   spegne il blocco grande sulla gobba del 2057 (acceso di default)
+--scatti-blocco2-anni 0  spegne il blocco piccolo sul gradino del 2036 (acceso di default)
 --precari-oggi 35000     stima PNRR invece della chiusura, lascia il gap in vista
 ```
 

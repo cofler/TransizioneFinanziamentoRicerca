@@ -28,8 +28,45 @@ POP_100K = 589.34
 PIL_MLN = 2_192_182
 LAMBDA_HE = 0.70
 
+# alpha = quota di tempo dedicata alla RICERCA; 1-alpha e' la didattica.
+#
+# IL POSTDOC E' L'UNICA FIGURA CON UN ALPHA CHE SI MUOVE NEL TEMPO, ed e' una LEVA del
+# piano come W o P2, non un dato rivisto. Oggi il postdoc insegna (0,75 come RTT e
+# ricercatori): e' la situazione osservata, e l'anno base deve riprodurla, altrimenti la
+# calibrazione starebbe misurando un sistema che non esiste. A regime il postdoc e' una
+# posizione di SOLA RICERCA (1,00): la didattica che oggi gli si scarica addosso e'
+# esattamente cio' che il piano vuole togliere. In mezzo c'e' la rampa RAMP, come per
+# tutte le altre leve - la didattica non si toglie a nessuno per decreto da un anno
+# all'altro, si smette di assegnarla man mano.
+#
+# Conseguenze, tutte GRADUALI e tutte volute:
+#   - il postdoc pesa via via di piu' negli FTE-RICERCA. Nel 2026 no: il gap Eurostat si
+#     chiude sui 47.340 precari di sempre, perche' _precari_per_chiudere() lavora sul
+#     valore di OGGI;
+#   - esce progressivamente dal denominatore del rapporto studenti/docente. Resta in
+#     DOCENTI_DID, perche' durante la rampa il suo peso didattico e' ancora > 0.
+# Coerente con la proposta di togliere la valutazione della didattica dai concorsi RTT:
+# non si puo' pretendere didattica da chi non ha un incarico didattico.
+ALPHA_PREC_OGGI = 0.75             # quota-ricerca del postdoc OGGI (un quarto didattica)
+ALPHA_PREC_TGT = 1.00              # a regime: sola ricerca, nessuna didattica
 ALPHA = {"dottorando": 0.75, "docente": 0.50, "ric_uni": 0.75,
-         "RTT": 0.75, "precari": 0.75}
+         "RTT": 0.75, "precari": ALPHA_PREC_OGGI}
+
+
+def alpha_precari(t: int | None = None) -> float:
+    """Quota-ricerca del postdoc all'anno t della rampa. t=None vale OGGI, ed e' il
+    default giusto per tutto cio' che guarda l'anno base: calibrazione, chiusura del gap
+    Eurostat, stato iniziale. Chi vuole il REGIME passa t >= RAMP esplicitamente."""
+    if t is None or t <= 0:
+        return ALPHA_PREC_OGGI
+    if t >= RAMP:
+        return ALPHA_PREC_TGT
+    return ALPHA_PREC_OGGI + (ALPHA_PREC_TGT - ALPHA_PREC_OGGI) * t / RAMP
+
+
+def alpha(t: int | None = None) -> dict[str, float]:
+    """ALPHA dell'anno t: identico a ALPHA tranne il postdoc, che rampa."""
+    return {**ALPHA, "precari": alpha_precari(t)}
 QUOTA_PO = 0.39
 
 # Frazione di una coorte che arriva a ORDINARIO. Non è 1: nella classe 65+ del 2024
@@ -65,9 +102,16 @@ QUOTA_PO_TGT = 0.50
 COSTO_DOCENTE_RIPIEGO = 110_541
 
 # --- POSTDOC: DUE FIGURE, non una ------------------------------------------
-# Il compartimento postdoc non e' omogeneo. Chi inizia il postdoc entro 6 anni dalla
-# LAUREA MAGISTRALE sta su un INCARICO DI RICERCA - lordo amministrazione piu' basso ed
-# ESENTE IRPEF; gli altri su un contratto di ricerca pieno, tassato.
+# Il compartimento postdoc non e' omogeneo. Chi inizia il postdoc entro ANNI_FINESTRA_IDR
+# anni dalla LAUREA MAGISTRALE sta su un INCARICO DI RICERCA - lordo amministrazione
+# piu' basso ed ESENTE IRPEF; gli altri su un contratto di ricerca pieno, tassato.
+#
+# LA FINESTRA E' 4 ANNI, NON 6. E' una scelta di proposta, non un dato: l'incarico di
+# ricerca esente e' uno strumento di INGRESSO, e una finestra lunga lo trasforma in un
+# canale di sottoinquadramento per meta' del precariato. A 4 anni resta quello che deve
+# essere - il ponte fra dottorato e primo contratto - e tutto il resto del postdoc sta
+# su contratto di ricerca pieno e tassato. Il modello ne paga il conto: il postdoc medio
+# costa di piu' e la platea esente si assottiglia.
 #
 # QUOTA_PREC_INCARICO e' STIMATA, non osservata. Si incrociano due distribuzioni:
 #   - eta' al conseguimento del DOTTORATO: media 32,6 anni, con 22,2% sotto i 29,
@@ -75,25 +119,43 @@ COSTO_DOCENTE_RIPIEGO = 110_541
 #     [AlmaLaurea, Profilo dei Dottori di ricerca 2022, Report 2023, Fig.3 p.7]
 #   - eta' media alla LAUREA MAGISTRALE biennale: 27,2 anni
 #     [AlmaLaurea, Profilo dei Laureati 2022]
-# Il postdoc inizia alla fine del dottorato, quindi "entro 6 anni dalla magistrale"
-# equivale a "dottorato conseguito prima dei 27,2+6 = 33,2 anni". Interpolando dentro
-# le classi si ottiene il 65,7%. Il conto rifatto per AREA disciplinare e ripesato
-# sulle quote di area da' 65,6%: le due strade coincidono, quindi 0,65.
+# Il postdoc inizia alla fine del dottorato, quindi "entro 4 anni dalla magistrale"
+# equivale a "dottorato conseguito prima dei 27,2+4 = 31,2 anni". Interpolando dentro
+# le classi si ottiene il 53,1%, da cui 0,53. La soglia cade appena sopra la MEDIANA
+# (31,0 anni), ed e' per questo che la quota crolla di 12 punti togliendo 2 anni di
+# finestra: si taglia dentro la classe piu' popolata invece che sulla sua coda.
+# NB: il controllo indipendente per AREA disciplinare (65,6% contro 65,7%) valeva per la
+# finestra a 6 anni e NON si rifa' qui - servirebbero le distribuzioni per area, non le
+# sole medie. La stima aggregata a 4 anni sta quindi in piedi da sola.
 # SENSITIVITA': l'eta' alla magistrale e' il punto debole (i dottori sono selezionati e
-# probabilmente si laureano prima della media). A 26,5 la quota scende al 61,3%, a 28,0
-# sale al 70,7%. Si muove con --quota-incarico.
+# probabilmente si laureano prima della media), e a finestra corta pesa DI PIU', perche'
+# la soglia si muove dentro la classe densa: a 26,5 la quota scende al 44,5%, a 28,0
+# sale al 58,2% (a 6 anni l'escursione era 61,3-70,7). Si muove con --quota-incarico.
 #
 # DUE QUOTE DIVERSE, e confonderle e' l'errore facile:
-#   QUOTA_PREC_INCARICO  = quota di PERSONE che hanno l'opzione (0,65, stimata sopra)
+#   QUOTA_PREC_INCARICO  = quota di PERSONE che hanno l'opzione (0,53, stimata sopra)
 #   quota_incarico_stock = quota di ANNI-PERSONA dello stock che ci stanno davvero
-# La finestra dei 6 anni si chiude DURANTE il postdoc: chi ha l'opzione la usa solo per
+# La finestra si chiude DURANTE il postdoc: chi ha l'opzione la usa solo per
 # ANNI_INCARICO dei PRECARI_ANNI di permanenza, poi passa al contratto di ricerca. Sullo
 # stock - che e' quello che il modello prezza e tassa - la quota vale quindi
-# 0,65 x 2,5/5 = 0,325, non 0,65.
+# 0,53 x 0,5/5 = 0,053, non 0,53.
+#
+# ANNI_INCARICO scende da 2,5 a 0,5 per la stessa ragione, ed e' una SOTTRAZIONE, non un
+# riscalamento: chiudere la finestra 2 anni prima accorcia di esattamente 2 anni il
+# tratto coperto di CHIUNQUE resti dentro. L'incarico di ricerca diventa cosi' una figura
+# residuale - mezzo anno a regime, sulla meta' scarsa che ci arriva in tempo - e non piu'
+# il regime ordinario del primo biennio di postdoc.
+# ONESTA' DEL NUMERO: 2,5 era gia' una stilizzazione ("meta' del postdoc"), non l'output
+# di una media sulla distribuzione; l'agente rappresentativo del modello finisce il
+# dottorato a ETA_FINE_PHD=33, cioe' 5,8 anni dopo la magistrale, e sarebbe fuori
+# finestra da subito sia a 6 anni sia a 4. ANNI_INCARICO vive sulla SOTTOPOPOLAZIONE che
+# si dottora presto, non sull'agente medio: e' un parametro di stock, e va letto insieme
+# a QUOTA_PREC_INCARICO, mai da solo.
+ANNI_FINESTRA_IDR = 4              # anni dalla magistrale entro cui spetta l'incarico
 COSTO_PREC_INCARICO = 30_000       # lordo amministrazione, ESENTE IRPEF
 COSTO_PREC_CONTRATTO = 45_000      # contratto di ricerca, tassato
-QUOTA_PREC_INCARICO = 0.65         # quota di persone che hanno l'opzione
-ANNI_INCARICO = 2.5                # anni di postdoc copribili con incarico di ricerca
+QUOTA_PREC_INCARICO = 0.53         # quota di persone che hanno l'opzione
+ANNI_INCARICO = 0.5                # anni di postdoc copribili con incarico di ricerca
 
 
 def quota_incarico_stock() -> float:
@@ -158,8 +220,12 @@ D_PHD = 3
 # 2023, Fig.3 p.7], arrotondati a 33 perché le classi della coorte sono annuali.
 # Il vecchio 34 era un'ipotesi, ed era INCOMPATIBILE con la stima della quota a incarico
 # di ricerca: a 34 anni si è già a 6,8 anni dalla laurea magistrale (27,2), quindi
-# nessuno sarebbe stato dentro la finestra dei 6 anni. Con 33 il divario medio è 5,4
-# anni e le due parti del modello raccontano la stessa storia.
+# nessuno sarebbe stato dentro la finestra, che allora era di 6 anni. Con 33 il divario
+# medio è 5,4 anni e le due parti del modello raccontano la stessa storia.
+# Con la finestra portata a 4 anni la coerenza è più debole - 5,4 > 4 - ma il punto non
+# cambia di segno: la quota a incarico non è calcolata sull'età MEDIA, è l'integrale
+# della distribuzione sotto la soglia, e a 4 anni ci sta dentro la metà che si dottora
+# presto. Vedi la nota su ANNI_INCARICO nel blocco POSTDOC.
 ETA_FINE_PHD, ETA_PENS = 33, 69
 
 # Gli enti di ricerca sono personale CONTRATTUALIZZATO, con regole di quiescenza loro.
@@ -193,6 +259,9 @@ PERM_OGGI = 43_046
 RIC_UNI_RUOLO_OGGI = 4_831
 PRECARI_OGGI = 35_000
 
+# Chi entra nel denominatore della DIDATTICA. Il postdoc c'e' ancora, e DEVE esserci:
+# il suo peso didattico e' 1-alpha_precari(t), che parte da 0,25 e si azzera solo a fine
+# rampa. Toglierlo dalla tupla vorrebbe dire azzerarne la didattica di colpo nel 2026.
 DOCENTI_DID = ("docente", "ric_uni", "RTT", "precari")
 STUD_DOC_OGGI = 19.45
 STUD_DOC_TGT = 14.3
@@ -277,6 +346,10 @@ SCATTI_BLOCCO_DA = 2045
 SCATTI_BLOCCO_ANNI = 5
 SCATTI_BLOCCO_RECUPERO = 0.0
 
+SCATTI_BLOCCO2_DA = 2033
+SCATTI_BLOCCO2_ANNI = 2
+SCATTI_BLOCCO2_RECUPERO = 0.0
+
 ALIQ_ONERI_ENTE = 0.3270
 ALIQ_IRAP = 0.0850
 GROSS_UP_DIP = 1.0 + ALIQ_ONERI_ENTE + ALIQ_IRAP
@@ -299,3 +372,6 @@ QUOTA_ESENTE_PREC_UNI = QUOTA_ESENTE_PREC_UNI_DEF
 QUOTA_ESENTE_PREC_UNI_TGT = QUOTA_ESENTE_PREC_UNI_DEF
 
 ADD_COMUNALE = 0.0065
+
+# --- ANCORA APERTE (non implementate) --------------------------------------
+# tenere la differenza associato - ordinario? solo come costo ma togliere la label?

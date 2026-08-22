@@ -56,10 +56,30 @@ RIGHE_TAB = [
 ]
 
 
-def tabella_scenario(df: pd.DataFrame, anni: list[int]) -> pd.DataFrame:
+# Righe che si aggiungono solo quando la leva prepensionamento e' accesa. Stanno qui,
+# accanto a RIGHE_TAB, invece che nel chiamante.
+RIGHE_PREPENS = [("Prepensionati/anno", "prepensionati", 0),
+                 ("Pensioni anticipate in carico (teste)", "prepens_in_carico", 0),
+                 ("Costo pensioni anticipate (mln EUR)", "pensioni_anticipate_mln", 0)]
+
+
+def righe_con_prepens() -> list[tuple[str, str, int]]:
+    """RIGHE_TAB con le righe del prepensionamento infilate dopo i pensionamenti.
+
+    Restituisce una lista NUOVA. La versione precedente splicciava RIGHE_TAB sul posto:
+    innocuo per la CLI, che gira una volta sola, ma in un processo che rieseguE il
+    modello - la webapp - le righe si duplicavano a ogni run."""
+    r = list(RIGHE_TAB)
+    i = [e for e, _, _ in r].index("Pensionamenti/anno") + 1
+    r[i:i] = RIGHE_PREPENS
+    return r
+
+
+def tabella_scenario(df: pd.DataFrame, anni: list[int],
+                     righe: list[tuple[str, str, int]] | None = None) -> pd.DataFrame:
     """Trasposta: una riga per variabile, una colonna per anno."""
     v = df[df["anno"].isin(anni)].set_index("anno")
     out = {}
-    for etichetta, col, dec in RIGHE_TAB:
+    for etichetta, col, dec in (RIGHE_TAB if righe is None else righe):
         out[etichetta] = [f"{v.loc[a, col]:,.{dec}f}" for a in anni]
     return pd.DataFrame(out, index=anni).T

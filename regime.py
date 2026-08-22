@@ -95,14 +95,33 @@ def _soglia(coorte_len: int, soglia: float | None) -> float:
 
 
 # ============================ BLOCCO SCATTI STIPENDIALI =====================
+def _finestre() -> list[tuple[float, float, float]]:
+    """Le finestre di blocco ATTIVE, come (primo anno, primo anno DOPO, recupero).
+
+    Sono due e indipendenti - la grande sulla gobba del 2057, la piccola sul gradino di
+    fine rampa del 2036 - e ciascuna ha il suo recupero. Una finestra con ANNI < 1 e'
+    spenta e non compare. Devono restare DISGIUNTE: _persi() somma finestra per finestra
+    e un anno coperto due volte verrebbe tolto due volte (vedi il blocco in config)."""
+    f = []
+    for da, anni, rec in ((C.SCATTI_BLOCCO_DA, C.SCATTI_BLOCCO_ANNI,
+                           C.SCATTI_BLOCCO_RECUPERO),
+                          (C.SCATTI_BLOCCO2_DA, C.SCATTI_BLOCCO2_ANNI,
+                           C.SCATTI_BLOCCO2_RECUPERO)):
+        if anni >= 1:
+            f.append((float(da), float(da + anni), rec))
+    return f
+
 def _blocco_on() -> bool:
-    return C.SCATTI_BLOCCO_ANNI >= 1
+    return bool(_finestre())
 
 def _sovrapposizione(da: float, a1: float, e: float, t: float) -> float:
     return max(0.0, min(t, a1) - max(e, da))
 
-def _persi(e: float, t: float, da: float, a1: float) -> float:
-    return _sovrapposizione(da, a1, e, t) * (1.0 - C.SCATTI_BLOCCO_RECUPERO)
+def _persi(e: float, t: float) -> float:
+    """Anni di scatto NON maturati da chi è in servizio nell'intervallo [e, t]: la somma
+    delle sovrapposizioni con ogni finestra, al netto della quota poi restituita."""
+    return sum(_sovrapposizione(da, a1, e, t) * (1.0 - rec)
+               for da, a1, rec in _finestre())
 
 def _prima_classe(scala: list[tuple[int, float]], cur: float) -> float:
     for anni, lordo in scala:
@@ -114,24 +133,21 @@ def _anzianita_po_da(soglia: float, anno: int | None = None) -> float:
     if anno is None or not _blocco_on():
         return _anzianita_po(soglia)
     e = float(anno) - soglia
-    da, a1 = float(C.SCATTI_BLOCCO_DA), float(C.SCATTI_BLOCCO_DA + C.SCATTI_BLOCCO_ANNI)
-    adj = soglia - _persi(e, float(anno), da, a1)
+    adj = soglia - _persi(e, float(anno))
     return _prima_classe(C.SCALA_PO, _ral(C.SCALA_PA, adj))
 
 def _anzianita_liv2_da(s_ii: float, anno: int | None = None) -> float:
     if anno is None or not _blocco_on():
         return _anzianita_liv2(s_ii)
     e = float(anno) - s_ii
-    da, a1 = float(C.SCATTI_BLOCCO_DA), float(C.SCATTI_BLOCCO_DA + C.SCATTI_BLOCCO_ANNI)
-    adj = s_ii - _persi(e, float(anno), da, a1)
+    adj = s_ii - _persi(e, float(anno))
     return _prima_classe(C.SCALA_EPR_II, _ral_epr(C.SCALA_EPR_III, adj))
 
 def _anzianita_liv1_da(s_i: float, anno: int | None = None) -> float:
     if anno is None or not _blocco_on():
         return _anzianita_liv1(s_i)
     e = float(anno) - s_i
-    da, a1 = float(C.SCATTI_BLOCCO_DA), float(C.SCATTI_BLOCCO_DA + C.SCATTI_BLOCCO_ANNI)
-    adj = s_i - _persi(e, float(anno), da, a1)
+    adj = s_i - _persi(e, float(anno))
     return _prima_classe(C.SCALA_EPR_I, _ral_epr(C.SCALA_EPR_II, adj))
 
 
@@ -152,22 +168,20 @@ def costo_classe(n: int, soglia: float | None = None,
     s = _soglia(n, soglia)
     off = _anzianita_po(s)
     pi = C.PROMOSSI_PO
-    da, a1w = (float(C.SCATTI_BLOCCO_DA), float(C.SCATTI_BLOCCO_DA + C.SCATTI_BLOCCO_ANNI)
-               ) if (anno is not None and _blocco_on()) else (0.0, 0.0)
     c = []
     for i in range(n):
         t = i + 0.5
         if _blocco_on() and anno is not None:
             e = float(anno) - t
             # chi non viene mai promosso resta sulla scala PA per tutta la carriera
-            sal_pa = _ral(C.SCALA_PA, t - _persi(e, float(anno), da, a1w))
+            sal_pa = _ral(C.SCALA_PA, t - _persi(e, float(anno)))
             if t < s:
                 c.append(sal_pa)
             else:
                 p = float(anno) - (t - s)
-                sal_promo = _ral(C.SCALA_PA, s - _persi(e, p, da, a1w))
+                sal_promo = _ral(C.SCALA_PA, s - _persi(e, p))
                 po_off = _prima_classe(C.SCALA_PO, sal_promo)
-                po_sen = po_off + (t - s) - _persi(p, float(anno), da, a1w)
+                po_sen = po_off + (t - s) - _persi(p, float(anno))
                 c.append(pi * _ral(C.SCALA_PO, po_sen) + (1 - pi) * sal_pa)
         else:
             if t < s:
@@ -247,34 +261,29 @@ def costo_classe_epr(n: int, s_ii: float | None = None,
     a2, a1 = _soglia_epr(n, s_ii, s_i)
     off_ii = _anzianita_liv2(a2)
     off_i = _anzianita_liv1(a1)
-    da, a1w = (float(C.SCATTI_BLOCCO_DA), float(C.SCATTI_BLOCCO_DA + C.SCATTI_BLOCCO_ANNI)
-               ) if (anno is not None and _blocco_on()) else (0.0, 0.0)
     c = []
     for i in range(n):
         t = i + 0.5
         if _blocco_on() and anno is not None:
             e = float(anno) - t
             if t < a2:
-                c.append(_ral_epr(C.SCALA_EPR_III,
-                                  t - _persi(e, float(anno), da, a1w)))
+                c.append(_ral_epr(C.SCALA_EPR_III, t - _persi(e, float(anno))))
             elif t < a1:
                 p2 = float(anno) - (t - a2)
-                sal_iii = _ral_epr(C.SCALA_EPR_III,
-                                   a2 - _persi(e, p2, da, a1w))
+                sal_iii = _ral_epr(C.SCALA_EPR_III, a2 - _persi(e, p2))
                 ii_off = _prima_classe(C.SCALA_EPR_II, sal_iii)
                 c.append(_ral_epr(C.SCALA_EPR_II,
-                                  ii_off + (t - a2) - _persi(p2, float(anno), da, a1w)))
+                                  ii_off + (t - a2) - _persi(p2, float(anno))))
             else:
                 p1 = float(anno) - (t - a1)
                 p2 = float(anno) - (t - a2)
-                sal_iii = _ral_epr(C.SCALA_EPR_III,
-                                   a2 - _persi(e, p2, da, a1w))
+                sal_iii = _ral_epr(C.SCALA_EPR_III, a2 - _persi(e, p2))
                 ii_off_p2 = _prima_classe(C.SCALA_EPR_II, sal_iii)
                 sal_ii = _ral_epr(C.SCALA_EPR_II,
-                                  ii_off_p2 + (a1 - a2) - _persi(p2, p1, da, a1w))
+                                  ii_off_p2 + (a1 - a2) - _persi(p2, p1))
                 i_off = _prima_classe(C.SCALA_EPR_I, sal_ii)
                 c.append(_ral_epr(C.SCALA_EPR_I,
-                                  i_off + (t - a1) - _persi(p1, float(anno), da, a1w)))
+                                  i_off + (t - a1) - _persi(p1, float(anno))))
         else:
             if t < a2:
                 c.append(_ral_epr(C.SCALA_EPR_III, t))
@@ -389,7 +398,9 @@ def _contrib(P2: float, precari_anni: float) -> tuple[dict[str, float], dict[str
              "RTT": P2 * C.D_RTT,
              "docente": ruolo * (1 - C.QUOTA_RIC_UNI),
              "ric_uni": ruolo * C.QUOTA_RIC_UNI}
-    fte = {k: v * C.ALPHA[k] for k, v in teste.items()}
+    # alpha DI REGIME: qui non c'è una rampa da percorrere, è lo stato stazionario.
+    # Per il postdoc vale quindi ALPHA_PREC_TGT (sola ricerca), non l'alpha di oggi.
+    fte = {k: v * C.alpha(C.RAMP)[k] for k, v in teste.items()}
     if not C.PHD_IN_FTE:
         fte["dottorando"] = 0.0        # esclusi dal CONTEGGIO, non dal costo
     return teste, fte
@@ -482,7 +493,7 @@ def avg_costo_split(precari_anni: float) -> tuple[float, float]:
     teste, fte = _contrib(C.P2_TGT, precari_anni)
     tot = sum(fte.values())
     cst = costi_regime()          # 'docente' alla composizione PO/PA di regime
-    costo = {k: t * C.ALPHA[k] * cst[k] / tot for k, t in teste.items()}
+    costo = {k: t * C.alpha(C.RAMP)[k] * cst[k] / tot for k, t in teste.items()}
     return sum(v for k, v in costo.items() if k != "dottorando"), costo["dottorando"]
 
 

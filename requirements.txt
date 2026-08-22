@@ -1,0 +1,20 @@
+# Vincoli con minimo compatibile e maggiore escluso: Streamlit Community Cloud
+# reinstalla a ogni deploy, e senza tetto un major nuovo di pandas o plotly puo'
+# rompere l'app senza che nulla sia cambiato nel repo.
+#
+# Versioni su cui il modello e' stato verificato: streamlit 1.62.0, pandas 2.2.3,
+# numpy 1.26.4, plotly 5.24.1, matplotlib 3.7.1, python-docx 1.2.0.
+
+# --- webapp -------------------------------------------------------------------
+streamlit>=1.40,<2
+plotly>=5.20,<7
+
+# --- modello ------------------------------------------------------------------
+pandas>=2.0,<3
+numpy>=1.24,<3
+
+# --- solo per la CLI: grafici in PNG di piano_transizione ----------------------
+matplotlib>=3.7,<4
+
+# --- solo per md2docx.py: conversione del documento in Word -------------------
+python-docx>=1.1,<2

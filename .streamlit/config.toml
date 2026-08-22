@@ -1,0 +1,16 @@
+# Tema della webapp. I colori seguono la palette di grafici_web.py, cosi' i grafici
+# non stonano con la cornice.
+[theme]
+base = "light"
+primaryColor = "#1F4E79"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F2F4F7"
+textColor = "#1B2733"
+
+[browser]
+gatherUsageStats = false
+
+[server]
+# La sidebar ha molti widget: senza questo, ogni run parziale rieseguirebbe lo script
+# piu' volte di quanto serva.
+runOnSave = false
