@@ -62,7 +62,7 @@ lock.
 ## Documentazione
 
 `MODELLO_spiegazione.md` è il documento di riferimento: ipotesi, calibrazione, risultati
-e **limiti dichiarati** dello scenario `ERA_PPP_ric`. Include i punti in cui il modello
+e **limiti dichiarati** dello scenario `ADI_Manifesto_ric`. Include i punti in cui il modello
 non raggiunge i suoi obiettivi — il rapporto studenti/docente, che peggiora prima di
 migliorare, e il test di validazione sugli RTT, che sbaglia del 31,5%.
 
@@ -75,5 +75,5 @@ Dopo una modifica al modello, il test che conta è che la CLI produca gli stessi
 
 ```bash
 python piano_transizione.py --out /tmp/dopo
-diff /tmp/prima/transizione_ERA_PPP_ric.csv /tmp/dopo/transizione_ERA_PPP_ric.csv
+diff /tmp/prima/transizione_ADI_Manifesto_ric.csv /tmp/dopo/transizione_ADI_Manifesto_ric.csv
 ```

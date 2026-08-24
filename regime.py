@@ -400,7 +400,7 @@ def _contrib(P2: float, precari_anni: float) -> tuple[dict[str, float], dict[str
              "ric_uni": ruolo * C.QUOTA_RIC_UNI}
     # alpha DI REGIME: qui non c'è una rampa da percorrere, è lo stato stazionario.
     # Per il postdoc vale quindi ALPHA_PREC_TGT (sola ricerca), non l'alpha di oggi.
-    fte = {k: v * C.alpha(C.RAMP)[k] for k, v in teste.items()}
+    fte = {k: v * C.alpha_regime()[k] for k, v in teste.items()}
     if not C.PHD_IN_FTE:
         fte["dottorando"] = 0.0        # esclusi dal CONTEGGIO, non dal costo
     return teste, fte
@@ -493,7 +493,7 @@ def avg_costo_split(precari_anni: float) -> tuple[float, float]:
     teste, fte = _contrib(C.P2_TGT, precari_anni)
     tot = sum(fte.values())
     cst = costi_regime()          # 'docente' alla composizione PO/PA di regime
-    costo = {k: t * C.alpha(C.RAMP)[k] * cst[k] / tot for k, t in teste.items()}
+    costo = {k: t * C.alpha_regime()[k] * cst[k] / tot for k, t in teste.items()}
     return sum(v for k, v in costo.items() if k != "dottorando"), costo["dottorando"]
 
 

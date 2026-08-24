@@ -219,6 +219,12 @@ def main() -> None:
                      help=f"anni di rampa delle leve (default {C.RAMP} -> a regime dal {C.ANNO0 + C.RAMP})")
     ap.add_argument("--ramp-phd", type=int, default=C.RAMP_PHD,
                      help=f"anni di rampa per la sola borsa PhD (default {C.RAMP_PHD})")
+    ap.add_argument("--ramp-alpha-prec", type=float, default=C.RAMP_ALPHA_PREC,
+                    help="anni su cui il postdoc smette di fare didattica (alpha da "
+                         f"{C.ALPHA_PREC_OGGI} a {C.ALPHA_PREC_TGT}; default "
+                         f"{C.RAMP_ALPHA_PREC}). 0 = segue --ramp. E' la leva che "
+                         "governa da sola la gobba del rapporto studenti/docente: a "
+                         "rampa breve il rapporto peggiora prima di migliorare")
     ap.add_argument("--prepens-anni", type=int, default=C.PREPENS_ANNI,
                     help=f"prepensionamento: anni di anticipo sull'età di pensione "
                          f"({C.ETA_PENS}). Default {C.PREPENS_ANNI}: eleggibili i "
@@ -640,12 +646,12 @@ def main() -> None:
               f"cumulati su {C.ORIZZONTE+1} anni: {lordo:>4,.0f} -> "
               f"{lordo-irp:>4,.0f} ({irp/lordo:.0%} rientra) -> {lordo-retro:>4,.0f} "
               f"({retro/lordo:.0%})")
-    _q = dfs["ERA_PPP_ric"]
+    _q = dfs["ADI_Manifesto_ric"]
     print(f"  -> a regime l'IRPEF vale {_q['irpef_quota_stip'].iloc[-1]:.0%} del monte "
           f"stipendi e {_q['irpef_mln'].iloc[-1]/(_q['budget_univ_mld'].iloc[-1]+_q['budget_epr_mld'].iloc[-1])/1000:.0%} "
           f"della spesa totale; con addizionali, contributi e IRAP si arriva al "
           f"{_q['retro_quota_stip'].iloc[-1]:.0%} degli stipendi.")
-    print(f"  -> l'aliquota media sale dal {dfs['ERA_PPP_ric']['aliq_irpef_media'].iloc[0]:.1%} "
+    print(f"  -> l'aliquota media sale dal {dfs['ADI_Manifesto_ric']['aliq_irpef_media'].iloc[0]:.1%} "
           f"al {_q['aliq_irpef_media'].iloc[-1]:.1%}: il piano non aggiunge solo teste, "
           f"le sposta verso il ruolo e alza le paghe, e l'IRPEF e' progressiva.\n"
           f"     Il ritorno fiscale cresce quindi PIU' CHE PROPORZIONALMENTE alla spesa.")
@@ -664,7 +670,7 @@ def main() -> None:
         _q_st = C.quota_incarico_stock()
         C.QUOTA_ESENTE_PREC_UNI = C.QUOTA_ESENTE_PREC_UNI_TGT = _q_st
         _salva_c, C.COSTO["precari"] = C.COSTO["precari"], C.costo_precari()
-        _d = simula(*scen["ERA_PPP_ric"])
+        _d = simula(*scen["ADI_Manifesto_ric"])
         C.COSTO["precari"] = _salva_c
         _sens.append({"quota_persone": round(_q_in, 3),
                       "quota_stock": round(_q_st, 3),
@@ -681,7 +687,7 @@ def main() -> None:
           f"l'opzione (entro {C.ANNI_FINESTRA_IDR} anni dalla magistrale);\n  'quota_stock' "
           f"= gli anni-persona che ci stanno davvero, perche' l'incarico copre "
           f"{C.ANNI_INCARICO:g} dei {C.PRECARI_ANNI:.0f} anni di postdoc. "
-          f"Scenario ERA_PPP_ric:")
+          f"Scenario ADI_Manifesto_ric:")
     print(pd.DataFrame(_sens).to_string(index=False))
     print(f"  -> la stima incrocia la distribuzione dell'eta' al DOTTORATO (AlmaLaurea "
           f"2022: media 32,6a, mediana ~31,0a) con l'eta' alla LAUREA MAGISTRALE "
@@ -752,7 +758,7 @@ def main() -> None:
     # direttamente sui grafici
     etich = {"FLC": f"FLC (target {scen['FLC'][0]:.0f})",
              "ERA": f"ERA paghe oggi (target {scen['ERA'][0]:.0f})",
-             "ERA_PPP_ric": f"ERA PPP + ric.univ. (target {scen['ERA_PPP_ric'][0]:.0f})"}
+             "ADI_Manifesto_ric": f"ADI Manifesto + ric.univ. (target {scen['ADI_Manifesto_ric'][0]:.0f})"}
     grafico_target(dfs, {n: v[0] for n, v in scen.items()}, etich,
                    f"{C.OUT}/transizione_fte.png")
     for nome, df in dfs.items():
@@ -763,7 +769,7 @@ def main() -> None:
     # sarebbero tre righe di zeri in una tabella già fitta
     righe = righe_con_prepens() if _prepens_on() else RIGHE_TAB
     anni = [2026, 2030, 2035, 2040, 2050, 2060, 2070, 2080]
-    for nome in ("FLC", "ERA_PPP_ric"):
+    for nome in ("FLC", "ADI_Manifesto_ric"):
         print(f"\n{'='*100}\nTABELLA {nome} - traiettoria {anni[0]}-{anni[-1]} "
               f"(target {scen[nome][0]:.0f} FTE/100k, paghe x{scen[nome][1]:.2f})\n{'='*100}")
         print(tabella_scenario(dfs[nome], anni, righe).to_string())
@@ -804,8 +810,8 @@ def main() -> None:
               "dove cala, e le attrezzature restano")
         print("          il solo residuo di calibrazione (LAMBDA_HE per l'università, "
               "OVH_EPR_ATTR per gli enti).")
-    singoli = grafici_singolo("ERA_PPP_ric", dfs, fg, C.OUT, etich)
-    print(f"[grafici] solo scenario ERA_PPP_ric, su file separati:\n           "
+    singoli = grafici_singolo("ADI_Manifesto_ric", dfs, fg, C.OUT, etich)
+    print(f"[grafici] solo scenario ADI_Manifesto_ric, su file separati:\n           "
           + "\n           ".join(singoli))
     print("  NB: 'proxy FFO' = maggior costo del personale di ricerca a carico dello"
           " Stato.\n      L'FFO come voce di bilancio NON è modellato.")
@@ -848,7 +854,7 @@ def main() -> None:
               f"{C.ANNO0+30}: {f30['stud_per_doc']:.2f} | {C.ANNO0+C.ORIZZONTE}: "
               f"{fin['stud_per_doc']:.2f} (a studenti fermi) / {fin['stud_per_doc_pop']:.2f} "
               f"(studenti ~ pop.) | media UE {C.STUD_DOC_TGT}: " + esito)
-    _pk = max(dfs["ERA_PPP_ric"]["stud_per_doc"])
+    _pk = max(dfs["ADI_Manifesto_ric"]["stud_per_doc"])
     print(f"  /!\\ ATTENZIONE: il rapporto PEGGIORA prima di migliorare - tocca "
           f"{_pk:.2f} a fine rampa, sopra il {C.STUD_DOC_OGGI} di partenza. Togliere la "
           f"didattica al postdoc")
@@ -868,7 +874,7 @@ def main() -> None:
     print(f"      NB: il {C.STUD_DOC_OGGI} di partenza e il traguardo {C.STUD_DOC_TGT} devono "
           f"venire dallo stesso indicatore, altrimenti il confronto non è omogeneo.")
     print()
-    print(f"  Il terzo scenario tiene INSIEME densità {scen['ERA_PPP_ric'][0]:.0f}, HERD "
+    print(f"  Il terzo scenario tiene INSIEME densità {scen['ADI_Manifesto_ric'][0]:.0f}, HERD "
           f"{C.HERD_TGT}% e parità PPP: i ricercatori universitari rendono 2x FTE per euro")
     print("  dei docenti, quindi servono MENO teste, non più.")
     if C.PRECARI_ANNI > 3:

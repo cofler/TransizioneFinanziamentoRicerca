@@ -53,20 +53,67 @@ ALPHA = {"dottorando": 0.75, "docente": 0.50, "ric_uni": 0.75,
          "RTT": 0.75, "precari": ALPHA_PREC_OGGI}
 
 
+# Durata della rampa dell'alpha del postdoc, in anni. None = segue RAMP.
+#
+# Si stacca da RAMP perche' e' la leva che governa il rapporto studenti/docente nei
+# primi anni, e lo governa DA SOLA. Togliere la didattica al postdoc svuota il
+# denominatore in fretta; le assunzioni lo ricostruiscono piano.
+#
+# VENTI ANNI, NON DIECI, ed e' una scelta di proposta come W o P2, non un dato.
+# A rampa 10 il rapporto studenti/docente PEGGIORA prima di migliorare: tocca 21,2 nel
+# 2036, sopra il 19,45 di partenza, perche' il disimpegno del postdoc corre piu' veloce
+# del piano di assunzioni. A 20 la gobba non si forma: il massimo resta il 19,45
+# dell'anno base e da li' il rapporto solo scende. E' la differenza fra una proposta che
+# per dieci anni peggiora la didattica prima di migliorarla e una che non lo fa mai -
+# e non e' un dettaglio tecnico, e' cio' che si puo' difendere davanti a chi la subisce.
+#
+# NON tocca lo stato stazionario, e non e' un caso: la rampa e' una VELOCITA', e dove
+# si arriva non puo' dipendere da quanto ci si mette. Il target di densita' resta
+# 163,69, il 2070 resta identico (densita' 246,1, HERD 0,697) e dal 2046 - finita la
+# rampa piu' lunga delle due - i due percorsi coincidono colonna per colonna.
+#
+# Non cambia nemmeno CHI si assume: le teste sono le stesse in ogni anno. Cambia solo
+# quanto il postdoc PESA, come FTE di ricerca e come FTE didattico, finche' la rampa
+# scorre. E' un effetto di transizione puro, ed e' esattamente il punto: il costo della
+# gobba didattica non e' un costo di regime, e' un costo di percorso, quindi si paga
+# solo scegliendo male la velocita'.
+RAMP_ALPHA_PREC = 20
+
+
+def ramp_alpha_prec() -> float:
+    """Anni su cui rampa l'alpha del postdoc. Mai zero: a rampa nulla il passaggio
+    sarebbe istantaneo e la divisione salterebbe."""
+    r = RAMP_ALPHA_PREC if RAMP_ALPHA_PREC else RAMP
+    return max(1e-9, r)
+
+
 def alpha_precari(t: int | None = None) -> float:
     """Quota-ricerca del postdoc all'anno t della rampa. t=None vale OGGI, ed e' il
     default giusto per tutto cio' che guarda l'anno base: calibrazione, chiusura del gap
-    Eurostat, stato iniziale. Chi vuole il REGIME passa t >= RAMP esplicitamente."""
+    Eurostat, stato iniziale. Chi vuole il REGIME passa t >= rampa esplicitamente."""
     if t is None or t <= 0:
         return ALPHA_PREC_OGGI
-    if t >= RAMP:
+    r = ramp_alpha_prec()
+    if t >= r:
         return ALPHA_PREC_TGT
-    return ALPHA_PREC_OGGI + (ALPHA_PREC_TGT - ALPHA_PREC_OGGI) * t / RAMP
+    return ALPHA_PREC_OGGI + (ALPHA_PREC_TGT - ALPHA_PREC_OGGI) * t / r
 
 
 def alpha(t: int | None = None) -> dict[str, float]:
     """ALPHA dell'anno t: identico a ALPHA tranne il postdoc, che rampa."""
     return {**ALPHA, "precari": alpha_precari(t)}
+
+
+def alpha_regime() -> dict[str, float]:
+    """ALPHA a REGIME, dove la rampa e' finita per definizione: il postdoc vale
+    ALPHA_PREC_TGT.
+
+    Esiste perche' regime.py chiedeva alpha(RAMP), che dava la risposta giusta solo
+    finche' il postdoc rampava insieme a tutte le altre leve. Da quando ha una rampa
+    sua (RAMP_ALPHA_PREC), alpha(RAMP) e' un punto A META' RAMPA, non lo stato
+    stazionario - e lo stato stazionario non puo' dipendere da quanto ci si mette ad
+    arrivarci."""
+    return {**ALPHA, "precari": ALPHA_PREC_TGT}
 QUOTA_PO = 0.39
 
 # Frazione di una coorte che arriva a ORDINARIO. Non è 1: nella classe 65+ del 2024

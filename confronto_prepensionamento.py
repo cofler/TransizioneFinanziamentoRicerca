@@ -101,7 +101,7 @@ def _serie(scenario: str, ades: float, sigma: float, anni: tuple[int, ...],
     C.QUOTA_RIC_UNI = 0.0
     scen = {"FLC": (140.0, 1.0, 0.0),
             "ERA": (d_era, 1.0, 0.0),
-            "ERA_PPP_ric": (d_ppp, C.UPLIFT_PPP, q)}
+            "ADI_Manifesto_ric": (d_ppp, C.UPLIFT_PPP, q)}
     arg = scen[scenario]
 
     out = {"spento": MO.simula_senza_prepens(*arg)}
@@ -257,8 +257,8 @@ def grafico(dfs: dict[str, pd.DataFrame], scenario: str, target: float,
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[2])
-    ap.add_argument("--scenario", default="ERA_PPP_ric",
-                    choices=["FLC", "ERA", "ERA_PPP_ric"])
+    ap.add_argument("--scenario", default="ADI_Manifesto_ric",
+                    choices=["FLC", "ERA", "ADI_Manifesto_ric"])
     # i default seguono il modello: se cambia li' cambiano anche qui, invece di
     # restare due configurazioni consigliate che divergono in silenzio
     ap.add_argument("--prepens-ades", type=float, default=C.PREPENS_ADES)

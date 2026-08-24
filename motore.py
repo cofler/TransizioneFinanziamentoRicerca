@@ -281,7 +281,7 @@ def _centro_finestra(dens_target: float, W: float, q_ric: float) -> int:
     è un buco seguito da un rimbalzo. Misurato su tutti e tre gli scenari a anticipo
     4 e adesione 50%: centrata sul picco lascia un buco di -2,2/-4,1 punti e un
     rimbalzo di 2,3/4,1; a picco-4 il buco e il rimbalzo sono ZERO in tutti e tre,
-    la gobba è più bassa che al picco (5,1 contro 5,8 su ERA_PPP_ric) e le uscite
+    la gobba è più bassa che al picco (5,1 contro 5,8 su ADI_Manifesto_ric) e le uscite
     sono un terzo in meno. A picco-6 si esagera e la gobba risale.
     Usata solo con --prepens-centro-auto: il default è PREPENS_CENTRO, che sui
     parametri di oggi vale esattamente quello che ritorna questa funzione."""

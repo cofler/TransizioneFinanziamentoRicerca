@@ -27,7 +27,7 @@ from regime import anni_da_associato_tgt
 
 # ============================ REPORT 2026-2050 ==============================
 # Palette: primi tre slot della palette di riferimento (validati all-pairs).
-PAL = {"ERA_PPP_ric": "#2a78d6", "ERA": "#eb6834", "FLC": "#1baf7a"}
+PAL = {"ADI_Manifesto_ric": "#2a78d6", "ERA": "#eb6834", "FLC": "#1baf7a"}
 INK, INK2, MUTED, GRID = "#0b0b0b", "#52514e", "#898781", "#e1e0d9"
 
 # Rampa dello stack di composizione. Le fasce NON sono categorie indipendenti ma

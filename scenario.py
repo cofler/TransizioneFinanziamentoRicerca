@@ -51,7 +51,7 @@ _PRISTINO: dict[str, object] = {
 
 _LOCK = threading.RLock()
 
-NOMI_SCENARI = ("FLC", "ERA", "ERA_PPP_ric")
+NOMI_SCENARI = ("FLC", "ERA", "ADI_Manifesto_ric")
 
 
 # --- parametri -------------------------------------------------------------------
@@ -76,6 +76,7 @@ DEFAULTS: dict[str, object] = {
     "precari_anni": C.PRECARI_ANNI,
     "ramp": C.RAMP,
     "ramp_phd": C.RAMP_PHD,
+    "ramp_alpha_prec": C.RAMP_ALPHA_PREC,   # None = segue ramp
     # dottorato
     "borsa_tgt": C.BORSA_TGT,
     "costo_phd": C.COSTO["dottorando"],
@@ -174,6 +175,8 @@ def applica(p: dict) -> None:
             "verrebbero contati due volte. Separa --scatti-blocco-da/--scatti-blocco2-da.")
     C.P2_HIST, C.PERM_OGGI, C.PRECARI_ANNI, C.RAMP = p["p2_hist"], p["perm_oggi"], p["precari_anni"], p["ramp"]
     C.RAMP_PHD = p["ramp_phd"]
+    # None = segue RAMP. Va dopo C.RAMP, che ramp_alpha_prec() legge come ripiego.
+    C.RAMP_ALPHA_PREC = p["ramp_alpha_prec"]
     C.RIC_UNI_RUOLO_OGGI = p["ric_uni_ruolo_oggi"]
     C.P2_MIN = p["p2_min"]
     C.STAB_PHD, C.PHD_IN_FTE, C.D_RTT = p["stab_phd"], p["phd_in_fte"], p["rtt_anni"]
@@ -254,7 +257,7 @@ def scenari() -> dict[str, tuple[float, float, float]]:
     C.QUOTA_RIC_UNI = 0.0
     return {"FLC": (140.0, 1.0, 0.0),
             "ERA": (d_era, 1.0, 0.0),
-            "ERA_PPP_ric": (d_ppp, C.UPLIFT_PPP, q)}
+            "ADI_Manifesto_ric": (d_ppp, C.UPLIFT_PPP, q)}
 
 
 @dataclass
@@ -286,7 +289,7 @@ def _fotografia_calibrazione() -> dict[str, float]:
             "p1": C.P1, "p1_hist": _p1_hist(), "w_phd": C.W_PHD}
 
 
-def esegui(p: dict, quali: tuple[str, ...] = ("ERA_PPP_ric",),
+def esegui(p: dict, quali: tuple[str, ...] = ("ADI_Manifesto_ric",),
            controlli: bool = False) -> Risultato:
     """Applica i parametri, calibra e simula gli scenari richiesti.
 

@@ -4,7 +4,7 @@ Stesso confine di grafici.py ("nessun calcolo di modello: entrano DataFrame, esc
 figure"), ma qui esce un go.Figure invece di un PNG. I due moduli convivono: grafici.py
 resta la sorgente delle immagini della CLI e del documento, questo serve il browser.
 
-La differenza che conta non e' il formato, e' l'HOVER: con hovermode="x unified" chi
+La differenza che conta non è il formato, è l'HOVER: con hovermode="x unified" chi
 passa il mouse su un anno legge la colonna intera - tutti i livelli di quell'anno e il
 totale - che su un PNG richiederebbe di andare a cercare la tabella.
 """
@@ -17,7 +17,11 @@ import config as C
 # Palette categorica, coerente fra i grafici: lo stesso compartimento ha lo stesso
 # colore ovunque compaia, cosi' passare da un tab all'altro non richiede di rileggere
 # la legenda.
-COL = {"phd": "#7C93C3", "postdoc": "#E8A33D", "rtt": "#5BA88F", "ric_uni": "#3E7CB1",
+# I tre gradi del ruolo universitario - ricercatore, associato, ordinario - stanno
+# nella stessa famiglia blu con luminosità decrescente: la scala di colore racconta
+# la scala di carriera, e le tre fasce restano distinguibili anche da adiacenti.
+COL = {"phd": "#7C93C3", "postdoc": "#E8A33D", "rtt": "#5BA88F", "ric_uni": "#4E9DD1",
+       "pa": "#2A5F8F", "po": "#12324F",
        "prof": "#1F4E79", "epr_prec": "#C6743A", "epr_ruolo": "#8C5A2B",
        "ta": "#9B8AA6", "attrezz": "#B0B7BE",
        "herd": "#1F4E79", "goverd": "#C6743A", "totale": "#2E7D5B",
@@ -29,14 +33,22 @@ _ASSE = dict(showgrid=True, gridcolor="rgba(128,128,128,.22)", zeroline=False)
 def _base(titolo: str, y: str, fine: int | None = None, zero: bool = True) -> go.Figure:
     """zero=True ancora l'asse y allo zero: giusto per le aree impilate, dove le altezze
     si sommano e partire da un fondo mobile mentirebbe sulle proporzioni. Per le linee
-    di un rapporto - studenti per docente fra 14 e 21, % di PIL fra 0,55 e 0,95 - e'
+    di un rapporto - studenti per docente fra 14 e 21, % di PIL fra 0,55 e 0,95 - è
     invece sbagliato: schiaccia tutta la variazione che interessa in un terzo di
     grafico. Li' si lascia autoscalare."""
     f = go.Figure()
     f.update_layout(
-        title=dict(text=titolo, font=dict(size=16)),
+        # Titolo e legenda vivono tutti e due nella fascia sopra l'area di disegno. Col
+        # titolo a y="auto" plotly lo centra NEL MARGINE, cioe' esattamente dove la
+        # legenda orizzontale si appoggia: finche' la legenda sta su una riga sembra
+        # funzionare, ma organico ha otto voci e va a capo, e la prima riga finisce
+        # sotto il titolo. Le due bande vanno quindi ancorate a quote diverse: il
+        # titolo in cima al CONTENITORE, la legenda appena sopra il grafico, e un
+        # margine superiore che le tenga separate anche a due righe di legenda.
+        title=dict(text=titolo, font=dict(size=16),
+                   yref="container", y=1.0, yanchor="top", pad=dict(t=12)),
         hovermode="x unified", template="plotly_white",
-        margin=dict(l=10, r=10, t=52, b=10), height=440,
+        margin=dict(l=10, r=10, t=96, b=10), height=470,
         legend=dict(orientation="h", yanchor="bottom", y=1.0, xanchor="left", x=0),
         xaxis=dict(title="", range=[C.ANNO0, fine or C.FINE_GRAFICI], **_ASSE),
         yaxis=dict(title=y, rangemode="tozero" if zero else "normal", **_ASSE),
@@ -46,7 +58,7 @@ def _base(titolo: str, y: str, fine: int | None = None, zero: bool = True) -> go
 
 def _area(f: go.Figure, df, col: str, nome: str, colore: str, fmt: str = ",.0f") -> None:
     """Una fascia dello stack. stackgroup fa la somma cumulata, ma hovertemplate mostra
-    il valore della SINGOLA fascia: e' quello che si vuole leggere, non il cumulato."""
+    il valore della SINGOLA fascia: è quello che si vuole leggere, non il cumulato."""
     f.add_trace(go.Scatter(
         x=df["anno"], y=df[col], name=nome, mode="lines", stackgroup="uno",
         line=dict(width=0.5, color=colore), fillcolor=colore,
@@ -69,7 +81,7 @@ def _obiettivo(f: go.Figure, y: float, testo: str) -> None:
 
 def _totale(f: go.Figure, df, cols: list[str], nome: str) -> None:
     """Traccia invisibile che aggiunge il totale al riquadro dell'hover. Senza, lo stack
-    mostra le fasce ma non la loro somma, che e' il primo numero che si cerca."""
+    mostra le fasce ma non la loro somma, che è il primo numero che si cerca."""
     f.add_trace(go.Scatter(
         x=df["anno"], y=df[cols].sum(axis=1), name=nome, mode="lines",
         line=dict(width=0), showlegend=False,
@@ -78,27 +90,32 @@ def _totale(f: go.Figure, df, cols: list[str], nome: str) -> None:
 
 # --- ORGANICO ----------------------------------------------------------------------
 
-def organico_uni(df, fine=None) -> go.Figure:
-    f = _base("Organico universitario (teste)", "teste", fine)
-    for col, nome, c in [("phd_teste", "dottorandi", COL["phd"]),
-                         ("postdoc_teste", "postdoc", COL["postdoc"]),
-                         ("rtt_teste", "RTT", COL["rtt"]),
-                         ("ric_uni_teste", "ricercatori univ.", COL["ric_uni"]),
-                         ("prof_teste", "professori PO/PA", COL["prof"])]:
-        _area(f, df, col, nome, c)
-    _totale(f, df, ["phd_teste", "postdoc_teste", "rtt_teste", "ric_uni_teste",
-                    "prof_teste"], "totale universita'")
-    return f
+def organico(df, fine=None) -> go.Figure:
+    """Tutto il personale di ricerca pubblico in un solo stack.
 
+    Università ed enti stavano su due grafici, e separati non si potevano confrontare:
+    l'occhio non somma due assi con scale diverse (~200k contro ~45k), quindi il ramo
+    EPR sembrava grande quanto quello universitario. Impilati sullo stesso asse il
+    rapporto fra i due si legge da solo.
 
-def organico_epr_ta(df, fine=None) -> go.Figure:
-    f = _base("Enti pubblici di ricerca e personale tecnico-amministrativo (teste)",
-              "teste", fine)
-    for col, nome, c in [("epr_precari", "EPR contratti di ricerca", COL["epr_prec"]),
-                         ("epr_ruolo", "EPR di ruolo", COL["epr_ruolo"]),
-                         ("ta_teste", "TA (universita' + enti)", COL["ta"])]:
+    L'ordine è la scala di carriera dal basso - dottorandi, postdoc, RTT, ruolo -
+    e gli enti si posano sopra, con una famiglia di colori loro (i marroni) perchè
+    sono un ramo diverso, non un gradino ulteriore di quello universitario."""
+    f = _base("Personale di ricerca pubblico (teste)", "teste", fine)
+    bande = [("phd_teste", "dottorandi", COL["phd"]),
+             ("postdoc_teste", "postdoc università", COL["postdoc"]),
+             ("rtt_teste", "RTT (tenure track)", COL["rtt"]),
+             ("ric_uni_teste", "ricercatori univ. a tempo ind.", COL["ric_uni"]),
+             ("pa_teste", "professori associati", COL["pa"]),
+             ("po_teste", "professori ordinari", COL["po"]),
+             ("epr_precari", "enti: contratti di ricerca", COL["epr_prec"]),
+             ("epr_ruolo", "enti: personale di ruolo", COL["epr_ruolo"])]
+    for col, nome, c in bande:
         _area(f, df, col, nome, c)
-    _totale(f, df, ["epr_precari", "epr_ruolo", "ta_teste"], "totale")
+    cols = [c for c, _, _ in bande]
+    _totale(f, df, cols, "totale personale di ricerca")
+    _totale(f, df, cols[:6], "di cui università")
+    _totale(f, df, cols[6:], "di cui enti")
     return f
 
 
@@ -107,9 +124,9 @@ def organico_epr_ta(df, fine=None) -> go.Figure:
 def spesa_stack(df, fine=None) -> go.Figure:
     f = _base("Spesa pubblica per la ricerca (mld EUR/anno, EUR2026 costanti)",
               "mld EUR/anno", fine)
-    for col, nome, c in [("budget_univ_mld", "universita', personale", COL["prof"]),
+    for col, nome, c in [("budget_univ_mld", "università, personale", COL["prof"]),
                          ("budget_epr_mld", "enti, personale", COL["epr_ruolo"]),
-                         ("attrezz_univ_mld", "universita', attrezzature", COL["attrezz"]),
+                         ("attrezz_univ_mld", "università, attrezzature", COL["attrezz"]),
                          ("attrezz_epr_mld", "enti, attrezzature", COL["ta"])]:
         _area(f, df, col, nome, c, fmt=",.2f")
     _totale(f, df, ["budget_univ_mld", "budget_epr_mld", "attrezz_univ_mld",
@@ -119,7 +136,7 @@ def spesa_stack(df, fine=None) -> go.Figure:
 
 def spesa_pil(df, fine=None) -> go.Figure:
     f = _base("Spesa in % del PIL, contro gli obiettivi", "% PIL", fine, zero=False)
-    _linea(f, df, "HERD_%PIL", "HERD (universita')", COL["herd"], ".3f")
+    _linea(f, df, "HERD_%PIL", "HERD (università)", COL["herd"], ".3f")
     _linea(f, df, "GOVERD_%PIL", "GOVERD (enti)", COL["goverd"], ".3f")
     _linea(f, df, "RS_pubblica_%PIL", "R&S pubblica (HERD+GOVERD)", COL["totale"],
            ".3f", larghezza=3.0)
@@ -131,43 +148,73 @@ def spesa_pil(df, fine=None) -> go.Figure:
 
 
 def costo_stato(df, fine=None) -> go.Figure:
-    """Costo LORDO e costo NETTO del retroflusso fiscale. Le due misure non vanno
-    sommate: la seconda e' la prima meno le imposte e i contributi che rientrano."""
+    """Costo lordo e le DUE misure di costo netto, che non sono intercambiabili.
+
+    L'IRPEF è la sola imposta ERARIALE: è l'unica parte del rientro che torna allo
+    Stato. Addizionali, contributi e IRAP tornano a regioni, comuni e INPS - sono
+    denaro pubblico, ma non dello stesso bilancio. Un grafico che mostrasse solo il
+    netto di TUTTI i prelievi sotto il titolo "costo per lo Stato" farebbe sembrare
+    che rientri il 53% di cio' che lo Stato spende, mentre allo Stato rientra il 18%.
+    Si mostra quindi la stessa misura del grafico PNG della CLI - il netto della sola
+    IRPEF - cosi' webapp e documento non raccontano due storie diverse. Il netto di
+    tutti i prelievi resta nella tabella, alla riga "Retroflusso tot.".."""
+    # zero=False perchè l'IRPEF si disegna SOTTO l'asse: con rangemode="tozero"
+    # la fascia negativa verrebbe tagliata via.
     f = _base("Costo aggiuntivo per lo Stato rispetto al 2026 (mld EUR/anno)",
-              "mld EUR/anno", fine)
+              "mld EUR/anno", fine, zero=False)
+    f.update_yaxes(zeroline=True, zerolinecolor="rgba(90,90,90,.55)", zerolinewidth=1.2)
     f.add_trace(go.Scatter(
         x=df["anno"], y=df["dStato_univ_mld"] + df["dStato_epr_mld"],
         name="costo lordo", mode="lines", fill="tozeroy",
         line=dict(width=0.5, color=COL["lordo"]), fillcolor="rgba(179,87,74,.28)",
         hovertemplate="%{y:,.2f}<extra>costo lordo</extra>"))
-    _linea(f, df, "dStato_netto_tot_mld",
-           "netto del retroflusso (IRPEF + addizionali + contributi + IRAP)",
+    _linea(f, df, "dStato_netto_irpef_mld",
+           "netto della sola IRPEF erariale (cio' che torna allo Stato)",
            COL["netto"], ",.2f", larghezza=3.0)
-    _linea(f, df, "dRetro_mld", "retroflusso fiscale", COL["ta"], ",.2f", "dot", 1.8)
+    # L'IRPEF è un'ENTRATA e si disegna sotto lo zero, come nel PNG della CLI: sopra
+    # l'asse cio' che esce, sotto cio' che rientra, e la distanza fra il tetto rosso e
+    # la linea verde è esattamente la fascia verde acqua ribaltata.
+    f.add_trace(go.Scatter(
+        x=df["anno"], y=-df["dIRPEF_mld"], name="IRPEF erariale (entrata)",
+        mode="lines", fill="tozeroy", line=dict(width=0.5, color="#29C29C"),
+        fillcolor="rgba(41,194,156,.45)",
+        hovertemplate="%{y:,.2f}<extra>IRPEF erariale (entrata)</extra>"))
     return f
 
 
-# --- CARRIERE, DIDATTICA, DENSITA' -------------------------------------------------
+# --- CARRIERE, DIDATTICA, DENSITà -------------------------------------------------
 
 def carriere(df, fine=None) -> go.Figure:
-    f = _base("Precarieta' e composizione dell'organico", "%", fine)
+    f = _base("Precarietà e composizione dell'organico", "%", fine)
     d = df.copy()
-    d["_doc"] = d["quota_docente"] * 100
+    # Le due quote sono COMPLEMENTARI per costruzione, ed è voluto: stessa convenzione
+    # di componente_precaria - TESTE (non FTE), università PIU' enti, dottorandi e TA
+    # fuori da entrambi i lati. Al numeratore dell'una i soli postdoc (universitari +
+    # contratti di ricerca EPR), al numeratore dell'altra tutto il ruolo: professori,
+    # ricercatori a tempo indeterminato, RTT e personale di ruolo degli enti. Gli RTT
+    # stanno fra gli strutturati perchè il tenure track ha l'esito garantito.
+    #
+    # NON si usa quota_docente, che sembra la stessa cosa e non lo è: quella è in FTE
+    # pesati per alpha, esclude gli RTT, guarda la sola università e tiene i dottorandi
+    # al denominatore. Messa qui accanto alla precaria darebbe due convenzioni diverse
+    # sullo stesso grafico, cioè due linee che non si possono leggere insieme.
+    d["_ruolo"] = 100 - d["componente_precaria"]
     d["_p1"] = d["P1_effettivo"] * 100
-    _linea(f, d, "componente_precaria", "componente precaria (% postdoc)",
-           COL["postdoc"], ".1f")
-    _linea(f, d, "componente_precaria_rtt", "idem, con gli RTT fra i precari",
-           COL["rtt"], ".1f", "dot", 1.8)
-    _linea(f, d, "_doc", "quota di ruolo sull'organico", COL["prof"], ".1f")
-    _linea(f, d, "_p1", "P1: dottori che proseguono", COL["ric_uni"], ".1f", "dash", 1.8)
+    _linea(f, d, "componente_precaria",
+           "precari = solo postdoc", COL["postdoc"], ".1f")
+    _linea(f, d, "_ruolo", "di ruolo = prof + ric. a tempo ind. + RTT",
+           COL["prof"], ".1f")
+    # COL["phd"] e non uno slot libero di palette: P1 è una quota del FLUSSO DI
+    # DOTTORI, non una fetta dell'organico, e il colore deve dire di cosa parla.
+    _linea(f, d, "_p1", "P1: dottori che proseguono", COL["phd"], ".1f", "dash", 1.8)
     return f
 
 
 def didattica(df, fine=None) -> go.Figure:
     """Il grafico che dice la cosa scomoda: il rapporto PEGGIORA prima di migliorare,
-    perche' la didattica si toglie al postdoc piu' in fretta di quanto il ruolo cresca.
-    L'annotazione sul picco e' calcolata dai dati, non scritta a mano: se i parametri
-    cambiano al punto da togliere la gobba, sparisce da se'."""
+    perchè la didattica si toglie al postdoc più in fretta di quanto il ruolo cresca.
+    L'annotazione sul picco è calcolata dai dati, non scritta a mano: se i parametri
+    cambiano al punto da togliere la gobba, sparisce da sè."""
     f = _base("Studenti per docente (FTE didattici)", "studenti / docente", fine,
               zero=False)
     _linea(f, df, "stud_per_doc", "studenti fermi ai livelli di oggi", COL["prof"], ".2f")
@@ -189,9 +236,9 @@ def didattica(df, fine=None) -> go.Figure:
 
 
 def densita(df, fine=None) -> go.Figure:
-    f = _base("Densita' di personale (FTE per 100.000 abitanti)", "FTE / 100k ab.",
+    f = _base("Densità di personale (FTE per 100.000 abitanti)", "FTE / 100k ab.",
               fine, zero=False)
-    _linea(f, df, "densita", "ricercatori universita'", COL["prof"], ".1f")
+    _linea(f, df, "densita", "ricercatori università", COL["prof"], ".1f")
     _linea(f, df, "densita_epr", "ricercatori enti", COL["epr_ruolo"], ".1f")
     _linea(f, df, "densita_ric_pub", "ricercatori pubblici (univ. + enti)",
            COL["totale"], ".1f", larghezza=3.0)
@@ -203,8 +250,12 @@ def densita(df, fine=None) -> go.Figure:
 
 # --- confronto fra scenari ---------------------------------------------------------
 
-_TRATTO = {"ERA_PPP_ric": None, "ERA": "dash", "FLC": "dot"}
-_COLORE = {"ERA_PPP_ric": COL["totale"], "ERA": COL["herd"], "FLC": COL["lordo"]}
+_TRATTO = {"ADI_Manifesto_ric": None, "ERA": "dash", "FLC": "dot"}
+_COLORE = {"ADI_Manifesto_ric": COL["totale"], "ERA": COL["herd"], "FLC": COL["lordo"]}
+# Il nome interno non è un'etichetta: "ADI_Manifesto_ric" letto a schermo diventa un
+# "ric" appeso. Le stesse diciture della CLI, cosi' grafici web e PNG si citano fra loro.
+_ETICH = {"ADI_Manifesto_ric": "ADI Manifesto + ric.univ.", "ERA": "ERA paghe oggi",
+          "FLC": "FLC"}
 
 
 def confronto(dfs: dict, col: str, titolo: str, y: str, fmt: str = ",.0f",
@@ -213,6 +264,7 @@ def confronto(dfs: dict, col: str, titolo: str, y: str, fmt: str = ",.0f",
     stack non si possono sovrapporre, due linee si."""
     f = _base(titolo, y, fine)
     for nome, df in dfs.items():
-        _linea(f, df, col, nome.replace("_", " "), _COLORE.get(nome, COL["ta"]), fmt,
-               _TRATTO.get(nome), 2.8 if nome == "ERA_PPP_ric" else 2.0)
+        _linea(f, df, col, _ETICH.get(nome, nome.replace("_", " ")),
+               _COLORE.get(nome, COL["ta"]), fmt,
+               _TRATTO.get(nome), 2.8 if nome == "ADI_Manifesto_ric" else 2.0)
     return f
