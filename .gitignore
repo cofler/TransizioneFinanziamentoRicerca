@@ -59,3 +59,8 @@ $RECYCLE.BIN/
 *.png
 *.pdf
 *doc
+
+# File di lavoro di Word: i lock (~$...) e i temporanei di salvataggio (~WRL....tmp)
+# sono finiti nel primo commit e vanno tenuti fuori, non ripuliti a mano ogni volta.
+~$*
+*.tmp
