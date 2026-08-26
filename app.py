@@ -256,21 +256,6 @@ confronta = st.sidebar.checkbox(
     "Confronta con gli scenari FLC ed ERA", False,
     help="Aggiunge i due baseline tutto-cattedre. Costa due simulazioni in più.")
 
-# Su desktop il riquadro dei valori compare al passaggio del mouse e sparisce da se';
-# su TOUCH no: il dito lo fissa su un anno e non c'e' modo di toglierlo, perche' non
-# esiste un "via il mouse". Questo e' il declic. Va letto PRIMA di disegnare: i grafici
-# lo prendono dal flag di modulo, non da un parametro.
-G.HOVER = "x unified" if st.sidebar.checkbox(
-    "Mostra i valori sul grafico", True,
-    help="Il riquadro con i numeri di un singolo anno. Toglilo per liberare il "
-         "grafico: da telefono e' l'unico modo di chiuderlo dopo averlo aperto con "
-         "un tocco.") else False
-
-# Barra strumenti di plotly spenta: zoom e pan non servono - l'asse degli anni ha un
-# intervallo fisso - e in compenso a schermo stretto le icone finiscono sopra il
-# titolo del grafico. Resta il pulsante schermo intero di Streamlit.
-CFG = {"displayModeBar": False}
-
 # =====================================================================================
 # ESECUZIONE
 # =====================================================================================
@@ -326,31 +311,30 @@ c[3].metric("Componente precaria (%)", v, d, delta_color="inverse",
 t1, t2, t4, t5 = st.tabs(["Organico", "Spesa", "Didattica", "Tabella"])
 
 with t1:
-    st.markdown("Chi c'è nel sistema, anno per anno. Passa il mouse su un anno - o "
-                "toccalo, da telefono - per leggere tutti i livelli insieme; clicca "
-                "una voce in legenda per toglierla. Il riquadro dei numeri si chiude "
-                "dalla sidebar, con **Mostra i valori sul grafico**.")
-    st.plotly_chart(G.organico(df, ANNO_FINE), width="stretch", config=CFG)
+    st.markdown("Chi c'è nel sistema, anno per anno. Passa il mouse su un anno per "
+                "leggere tutti i livelli insieme; clicca una voce in legenda per "
+                "toglierla.")
+    st.plotly_chart(G.organico(df, ANNO_FINE), width="stretch")
     st.markdown("La precarietà in quota: quanti stanno in un "
                 "compartimento a esito incerto rispetto al totale. ")
-    st.plotly_chart(G.carriere(df, ANNO_FINE), width="stretch", config=CFG)
-    st.plotly_chart(G.densita(df, ANNO_FINE), width="stretch", config=CFG)
+    st.plotly_chart(G.carriere(df, ANNO_FINE), width="stretch")
+    st.plotly_chart(G.densita(df, ANNO_FINE), width="stretch")
     if confronta:
         st.plotly_chart(G.confronto(res.dfs, "densita_ric_pub",
                                     "Densità di ricercatori pubblici: confronto",
                                     "FTE / 100k ab.", ".1f", ANNO_FINE),
-                        width="stretch", config=CFG)
+                        width="stretch")
 
 with t2:
     st.markdown("Due misure che non vanno sommate fra loro: la spesa in mld è il "
                 "bilancio pubblico, la % di PIL è la contabilità Eurostat della R&S.")
-    st.plotly_chart(G.spesa_stack(df, ANNO_FINE), width="stretch", config=CFG)
-    st.plotly_chart(G.spesa_pil(df, ANNO_FINE), width="stretch", config=CFG)
-    st.plotly_chart(G.costo_stato(df, ANNO_FINE), width="stretch", config=CFG)
+    st.plotly_chart(G.spesa_stack(df, ANNO_FINE), width="stretch")
+    st.plotly_chart(G.spesa_pil(df, ANNO_FINE), width="stretch")
+    st.plotly_chart(G.costo_stato(df, ANNO_FINE), width="stretch")
     if confronta:
         st.plotly_chart(G.confronto(res.dfs, "RS_pubblica_%PIL",
                                     "R&S pubblica in % PIL: confronto", "% PIL", ".3f",
-                                    ANNO_FINE), width="stretch", config=CFG)
+                                    ANNO_FINE), width="stretch")
 
 with t4:
     st.markdown(
@@ -358,7 +342,7 @@ with t4:
         f"`1-alpha`. Il postdoc è l'unico peso che si muove nel tempo: parte da "
         f"{1 - C.alpha_precari(0):.2f} e si azzera a fine rampa, perchè il piano gli "
         f"toglie la didattica.")
-    st.plotly_chart(G.didattica(df, ANNO_FINE), width="stretch", config=CFG)
+    st.plotly_chart(G.didattica(df, ANNO_FINE), width="stretch")
     st.info("Il traguardo della media UE non è raggiunto in tutti gli scenari, e il "
             "rapporto può **peggiorare prima di migliorare**: togliere la didattica al "
             "postdoc può togliere denominatore (persone che fanno didattica) più in fretta di quanto le assunzioni lo "
