@@ -313,19 +313,33 @@ c[3].metric("Componente precaria (%)", v, d, delta_color="inverse",
             help="Quota di postdoc sul personale di ricerca.")
 
 # --- grafici -----------------------------------------------------------------------
-# Il declic del riquadro dei valori. Su desktop il riquadro compare al passaggio del
-# mouse e sparisce da se'; su TOUCH no - il dito lo fissa su un anno e non esiste un
-# "via il mouse" che lo tolga.
-#
-# Sta nel CORPO e non nella sidebar, che su telefono e' chiusa dietro il pulsante ">>":
-# il comando che serve a liberare un grafico coperto non puo' essere nel pannello che
-# da telefono non si vede. Va letto PRIMA di disegnare: i grafici prendono la modalita'
-# dal flag di modulo, non da un parametro.
-G.HOVER = "x unified" if st.toggle(
-    "Mostra i valori sul grafico", True,
-    help="Il riquadro con i numeri di un singolo anno. Spegnilo per liberare il "
-         "grafico: da telefono è l'unico modo di chiuderlo dopo averlo aperto con "
-         "un tocco.") else False
+def _grafico(nome: str, fn, *args) -> None:
+    """Un grafico, con sopra il suo interruttore dei valori.
+
+    Il declic del riquadro dei numeri. Su desktop il riquadro compare al passaggio del
+    mouse e sparisce da se'; su TOUCH no - il dito lo fissa su un anno e non esiste un
+    "via il mouse" che lo tolga. Due dettagli che non sono dettagli:
+
+    - l'interruttore sta sopra OGNI grafico, non uno solo per pagina. Da telefono si
+      legge un grafico alla volta, e il comando che libera quello che stai guardando
+      non puo' essere tre schermate piu' su. Per lo stesso motivo non sta in sidebar,
+      che su mobile e' chiusa dietro il pulsante ">>".
+    - la key del grafico si porta dentro lo stato dell'interruttore. Senza, Streamlit
+      AGGIORNA il grafico gia' montato: plotly recepisce la nuova modalita' di hover,
+      ma il riquadro aperto col dito resta disegnato dov'e' e spegnere l'interruttore
+      sembra non fare nulla. Cambiando key il grafico viene RIMONTATO da zero, e il
+      riquadro se ne va insieme al vecchio nodo.
+
+    G.HOVER va impostato PRIMA di costruire la figura: i grafici leggono la modalita'
+    dal flag di modulo, non da un parametro.
+    """
+    on = st.toggle("Mostra i valori sul grafico", True, key="hv_" + nome,
+                   help="Il riquadro con i numeri di un singolo anno. Spegnilo per "
+                        "liberare il grafico: da telefono è l'unico modo di "
+                        "chiuderlo dopo averlo aperto con un tocco.")
+    G.HOVER = "x unified" if on else False
+    st.plotly_chart(fn(*args), width="stretch", config=CFG, key=f"g_{nome}_{int(on)}")
+
 
 t1, t2, t4, t5 = st.tabs(["Organico", "Spesa", "Didattica", "Tabella"])
 
@@ -333,28 +347,26 @@ with t1:
     st.markdown("Chi c'è nel sistema, anno per anno. Passa il mouse su un anno - o "
                 "toccalo, da telefono - per leggere tutti i livelli insieme; clicca "
                 "una voce in legenda per toglierla. Il riquadro dei numeri si chiude "
-                "con l'interruttore **Mostra i valori sul grafico** qui sopra.")
-    st.plotly_chart(G.organico(df, ANNO_FINE), width="stretch", config=CFG)
+                "con l'interruttore sopra ciascun grafico.")
+    _grafico("organico", G.organico, df, ANNO_FINE)
     st.markdown("La precarietà in quota: quanti stanno in un "
                 "compartimento a esito incerto rispetto al totale. ")
-    st.plotly_chart(G.carriere(df, ANNO_FINE), width="stretch", config=CFG)
-    st.plotly_chart(G.densita(df, ANNO_FINE), width="stretch", config=CFG)
+    _grafico("carriere", G.carriere, df, ANNO_FINE)
+    _grafico("densita", G.densita, df, ANNO_FINE)
     if confronta:
-        st.plotly_chart(G.confronto(res.dfs, "densita_ric_pub",
-                                    "Densità di ricercatori pubblici: confronto",
-                                    "FTE / 100k ab.", ".1f", ANNO_FINE),
-                        width="stretch", config=CFG)
+        _grafico("dens_conf", G.confronto, res.dfs, "densita_ric_pub",
+                 "Densità di ricercatori pubblici: confronto",
+                 "FTE / 100k ab.", ".1f", ANNO_FINE)
 
 with t2:
     st.markdown("Due misure che non vanno sommate fra loro: la spesa in mld è il "
                 "bilancio pubblico, la % di PIL è la contabilità Eurostat della R&S.")
-    st.plotly_chart(G.spesa_stack(df, ANNO_FINE), width="stretch", config=CFG)
-    st.plotly_chart(G.spesa_pil(df, ANNO_FINE), width="stretch", config=CFG)
-    st.plotly_chart(G.costo_stato(df, ANNO_FINE), width="stretch", config=CFG)
+    _grafico("spesa_stack", G.spesa_stack, df, ANNO_FINE)
+    _grafico("spesa_pil", G.spesa_pil, df, ANNO_FINE)
+    _grafico("costo_stato", G.costo_stato, df, ANNO_FINE)
     if confronta:
-        st.plotly_chart(G.confronto(res.dfs, "RS_pubblica_%PIL",
-                                    "R&S pubblica in % PIL: confronto", "% PIL", ".3f",
-                                    ANNO_FINE), width="stretch", config=CFG)
+        _grafico("pil_conf", G.confronto, res.dfs, "RS_pubblica_%PIL",
+                 "R&S pubblica in % PIL: confronto", "% PIL", ".3f", ANNO_FINE)
 
 with t4:
     st.markdown(
@@ -362,7 +374,7 @@ with t4:
         f"`1-alpha`. Il postdoc è l'unico peso che si muove nel tempo: parte da "
         f"{1 - C.alpha_precari(0):.2f} e si azzera a fine rampa, perchè il piano gli "
         f"toglie la didattica.")
-    st.plotly_chart(G.didattica(df, ANNO_FINE), width="stretch", config=CFG)
+    _grafico("didattica", G.didattica, df, ANNO_FINE)
     st.info("Il traguardo della media UE non è raggiunto in tutti gli scenari, e il "
             "rapporto può **peggiorare prima di migliorare**: togliere la didattica al "
             "postdoc può togliere denominatore (persone che fanno didattica) più in fretta di quanto le assunzioni lo "

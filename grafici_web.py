@@ -66,7 +66,7 @@ def _base(titolo: str, y: str, fine: int | None = None, zero: bool = True) -> go
         title=dict(text=titolo, font=dict(size=16),
                    yref="container", y=1.0, yanchor="top", pad=dict(t=4)),
         hovermode=HOVER, template="plotly_white",
-        margin=dict(l=10, r=10, t=84, b=10), height=486,
+        margin=dict(l=10, r=10, t=100, b=10), height=486,
         legend=dict(orientation="h", yanchor="top", y=-0.14, xanchor="left", x=0),
         xaxis=dict(title="", range=[C.ANNO0, fine or C.FINE_GRAFICI], **_ASSE),
         yaxis=dict(title=y, rangemode="tozero" if zero else "normal", **_ASSE),
