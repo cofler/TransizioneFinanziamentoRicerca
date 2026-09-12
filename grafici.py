@@ -21,6 +21,21 @@ matplotlib.use("Agg")
 import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
 
+# Gli elementi di supporto (assi, spine, tacche, titoli, label, testo) vanno in
+# bianco: le figure sono salvate con transparent=True e finiscono su fondo scuro
+# nella webapp. Questo è il default globale; i colori dei DATI (PAL, STACK, SPESA)
+# restano quelli, e il testo scritto DENTRO le fasce colorate lo decide _ink_su.
+plt.rcParams.update({
+    "text.color": "#ffffff", "axes.labelcolor": "#ffffff",
+    "axes.edgecolor": "#ffffff", "axes.titlecolor": "#ffffff",
+    "xtick.color": "#ffffff", "ytick.color": "#ffffff",
+    "axes.facecolor": "none", "figure.facecolor": "none",
+    # tutti i corpi font sono +30% rispetto alla prima versione: i literal
+    # fontsize= nel modulo sono già scalati, questo copre i default (es. i
+    # titoli senza size esplicita in grafico_target).
+    "font.size": 13.0,
+})
+
 import config as C
 from motore import _teste_tot
 from regime import anni_da_associato_tgt
@@ -28,7 +43,9 @@ from regime import anni_da_associato_tgt
 # ============================ REPORT 2026-2050 ==============================
 # Palette: primi tre slot della palette di riferimento (validati all-pairs).
 PAL = {"ADI_Manifesto_ric": "#2a78d6", "ERA": "#eb6834", "FLC": "#1baf7a"}
-INK, INK2, MUTED, GRID = "#0b0b0b", "#52514e", "#898781", "#e1e0d9"
+# tutto il primo piano (titoli, note, tacche, testo di legenda) in bianco pieno;
+# griglia in bianco molto trasparente.
+INK, INK2, MUTED, GRID = "#ffffff", "#ffffff", "#ffffff", (1, 1, 1, 0.20)
 
 # Rampa dello stack di composizione. Le fasce NON sono categorie indipendenti ma
 # STADI ORDINATI di carriera: una sola tinta a luminosità decrescente verso
@@ -121,6 +138,47 @@ SPESA = [("dStato_univ_pers_mld", "Università (uscita)", "#249F2F", " "),
 SPESA_IRPEF = ("dIRPEF_mld", "Tassazione sul reddito (entrata)", "#29c29c",
                " ")
 
+# La fascia del rientro sotto lo zero si può spegnere: resta comunque la LINEA del
+# netto dentro lo stack, che è il numero che interessa. Con la fascia spenta il
+# disegno non ha più parte negativa e l'asse riparte da zero.
+MOSTRA_IRPEF = False
+
+
+# ---- CONTESTO STORICO: l'FFO prima del 2026 ----------------------------------
+# grafico_spesa_stack parte dal 2026 = 0. A SINISTRA dello zero, la linea nera
+# dà la scala di quanto vale l'incremento programmato: l'andamento REALE dell'FFO
+# negli anni recenti, messo nelle stesse unità del resto della figura - variazione
+# rispetto al 2026, in miliardi EUR2026 costanti.
+# Valori: "FFO attualizzato al 2022" (miliardi, già in prezzi 2022) dalla tabella MUR.
+FFO_STORICO_EUR2022 = {2022: 8.655, 2023: 8.712, 2024: 8.459,
+                       2025: 8.645, 2026: 8.480}
+# Deflatore: tasso annuo (foto MUR, terza colonna). Il 2026 non è nella fonte:
+# si porta avanti il 2025.
+INFLAZ = {2016: -0.001, 2017: 0.013, 2018: 0.012, 2019: 0.006, 2020: -0.001,
+          2021: 0.019, 2022: 0.087, 2023: 0.059, 2024: 0.011, 2025: 0.017,
+          2026: 0.017}
+FFO_STORICO_DA = 2017      # quanto indietro arriva la linea nera
+
+
+def _ffo_storico_rel2026() -> tuple[np.ndarray, np.ndarray]:
+    """Linea nera del contesto storico: (anni, y) con y = variazione dell'FFO
+    rispetto al 2026, in miliardi EUR2026.
+
+    2022-2026: i valori reali della tabella (già in EUR2022).
+    FFO_STORICO_DA..2021: la STESSA tendenza dei cinque anni ma a META' velocità,
+    ancorata al valore vero del 2022 e proiettata all'indietro.
+    Infine tutto da EUR2022 a EUR2026: i valori e la proiezione sono tutti in
+    prezzi 2022, quindi è un unico fattore (prodotto dei tassi 2023..2026)."""
+    anni_d = np.array(sorted(FFO_STORICO_EUR2022))                 # 2022..2026
+    val_d = np.array([FFO_STORICO_EUR2022[a] for a in anni_d])
+    slope = np.polyfit(anni_d, val_d, 1)[0] * 0.5                  # tendenza dimezzata
+    anni_p = np.arange(FFO_STORICO_DA, anni_d[0])                  # 2017..2021
+    val_p = FFO_STORICO_EUR2022[2022] + slope * (anni_p - 2022)
+    anni = np.concatenate([anni_p, anni_d])
+    val = np.concatenate([val_p, val_d])
+    fatt = float(np.prod([1 + INFLAZ[a] for a in (2023, 2024, 2025, 2026)]))
+    return anni, (val - FFO_STORICO_EUR2022[2026]) * fatt
+
 
 def grafico_trend(dfs: dict[str, pd.DataFrame], fine: int, path: str,
             titolo: str | None = None) -> None:
@@ -197,7 +255,7 @@ def grafico_trend(dfs: dict[str, pd.DataFrame], fine: int, path: str,
                         list(dfs.values())[0][lambda x: x["anno"] <= fine_p][c])
             for df in dfs.values() for c in cols)
         ax.set_title(tit + (f"  (identico nei {len(dfs)} scenari)" if coincide else ""),
-                     fontsize=10, color=INK, loc="left", pad=8)
+                     fontsize=13, color=INK, loc="left", pad=8)
         ax.yaxis.set_major_formatter(
             plt.FuncFormatter(lambda v, _: f"{v:,.0f}" if abs(v) >= 1000 else f"{v:g}"))
         if col == "quota_phd_postdoc":
@@ -209,22 +267,22 @@ def grafico_trend(dfs: dict[str, pd.DataFrame], fine: int, path: str,
                                           label="restano come postdoc (univ.+EPR)"),
                                plt.Line2D([], [], color=MUTED, lw=1.6, ls=(0, (4, 2.2)),
                                           label="entrano in tenure track (RTT+Madia)")],
-                      fontsize=8, frameon=False, labelcolor=INK2, loc="upper right")
+                      fontsize=10.4, frameon=False, labelcolor=INK2, loc="upper right")
         if col == "GOVERD_%PIL":                    # riferimento: obiettivo dichiarato
             ax.axhline(C.GOVERD_TGT, lw=1.2, ls=(0, (4, 3)), color=MUTED)
             ax.annotate(f"obiettivo {C.GOVERD_TGT:g}%", (C.ANNO0 + 1, C.GOVERD_TGT),
                         textcoords="offset points", xytext=(0, -11),
-                        fontsize=8, color=INK2)
+                        fontsize=10.4, color=INK2)
         if col == "stud_per_doc":              # riferimento: la media europea
             ax.axhline(C.STUD_DOC_TGT, lw=1.2, ls=(0, (4, 3)), color=MUTED)
             ax.annotate(f"media UE {C.STUD_DOC_TGT:g}", (C.ANNO0 + 1, C.STUD_DOC_TGT),
                         textcoords="offset points", xytext=(0, -11),
-                        fontsize=8, color=INK2)
+                        fontsize=10.4, color=INK2)
         if col == "HERD_%PIL":
             ax.axhline(C.HERD_TGT, lw=1.2, ls=(0, (4, 3)), color=MUTED)
             ax.annotate(f"obiettivo ERA {C.HERD_TGT:g}%", (C.ANNO0 + 1, C.HERD_TGT),
                         textcoords="offset points", xytext=(0, -11),
-                        fontsize=8, color=INK2)
+                        fontsize=10.4, color=INK2)
         if col == "quota_ta":
             # asse in percentuale, come per l'altro pannello di quote: qui il riquadro
             # scrive dei valori in %, e una tacca che dicesse 0,21 accanto a un testo che
@@ -246,9 +304,9 @@ def grafico_trend(dfs: dict[str, pd.DataFrame], fine: int, path: str,
             # in basso a sinistra: con la baseline a zero e la serie intorno al 20% la
             # metà inferiore del pannello è sempre vuota, qualunque scenario
             ax.text(0.03, 0.05, "\n".join(righe), transform=ax.transAxes,
-                    fontsize=8.5, color=INK2, ha="left", va="bottom", linespacing=1.5,
-                    bbox=dict(boxstyle="round,pad=0.34", facecolor="#fcfcfb",
-                              edgecolor="#c3c2b7", linewidth=0.7, alpha=0.92))
+                    fontsize=11.05, color=INK2, ha="left", va="bottom", linespacing=1.5,
+                    bbox=dict(boxstyle="round,pad=0.34", facecolor="#1c1c1c",
+                              edgecolor="#ffffff", linewidth=0.7, alpha=0.82))
         if col == "quota_attrezz":
             # asse in percentuale come gli altri due pannelli di quote
             ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:.0%}"))
@@ -260,7 +318,7 @@ def grafico_trend(dfs: dict[str, pd.DataFrame], fine: int, path: str,
             ax.axhline(q0, lw=1.2, ls=(0, (4, 3)), color=MUTED)
             ax.annotate(f"quota {C.ANNO0}: {q0:.0%}", (C.ANNO0 + 1, q0),
                         textcoords="offset points", xytext=(0, -11),
-                        fontsize=8, color=INK2)
+                        fontsize=10.4, color=INK2)
             # i due ancoraggi dell'inviluppo: da qui in poi la curva non è più solo
             # il modello, è la regola di piano. Scritti come tacche sull'asse dei
             # tempi e non come annotazioni, per non aggiungere inchiostro dentro il
@@ -275,11 +333,11 @@ def grafico_trend(dfs: dict[str, pd.DataFrame], fine: int, path: str,
         # riferimento che nessuna curva avvicina non aiuta a leggere, arreda.
         ax.grid(True, lw=0.6, color=GRID)
         ax.set_axisbelow(True)
-        ax.tick_params(labelsize=8, colors=MUTED, length=0)
+        ax.tick_params(labelsize=10.4, colors=MUTED, length=0)
         for lato in ("top", "right"):
             ax.spines[lato].set_visible(False)
         for lato in ("left", "bottom"):
-            ax.spines[lato].set_color("#c3c2b7")
+            ax.spines[lato].set_color("#ffffff")
         if col in ("densita", "ruolo_teste", "postdoc_teste", "rtt_teste",
                    "quota_phd_postdoc", "epr_ruolo", "phd_teste", "ta_fte",
                    "quota_ta", "densita_rs_tot", "fte_didattico", "stud_per_doc",
@@ -293,11 +351,11 @@ def grafico_trend(dfs: dict[str, pd.DataFrame], fine: int, path: str,
     # una sola legenda per l'intera figura: l'identità non è mai solo-colore.
     # Con una serie sola la legenda non serve: è il titolo a nominarla.
     if len(dfs) > 1:
-        axes[0][0].legend(fontsize=8.5, frameon=False, labelcolor=INK2, loc="upper left")
+        axes[0][0].legend(fontsize=11.05, frameon=False, labelcolor=INK2, loc="upper left")
     fig.suptitle(titolo or f"Transizione {C.ANNO0}-{fine}: università ed EPR a confronto",
-                 fontsize=12.5, color=INK, x=0.008, ha="left", y=0.995)
+                 fontsize=16.25, color=INK, x=0.008, ha="left", y=0.995)
     fig.tight_layout(rect=(0, 0, 1, 0.97))
-    fig.savefig(path, dpi=140, facecolor="#fcfcfb")
+    fig.savefig(path, dpi=140, transparent=True)
     plt.close(fig)
 
 
@@ -310,15 +368,15 @@ def grafico_target(dfs: dict[str, pd.DataFrame], target: dict[str, float],
     for nome, df in dfs.items():
         # qui la densità a popolazione FISSA, perchè il pannello ha le righe di target
         ax[0].plot(df["anno"], df["densita_pop2026"], label=etich[nome])
-        ax[0].axhline(target[nome], ls=":", lw=0.6, color="grey")
+        ax[0].axhline(target[nome], ls=":", lw=0.6, color="#cfcfcf")
         ax[1].plot(df["anno"], df["dBudget_%PIL"], label=etich[nome])
-    ax[0].axhline(C.DENS_OGGI, ls="--", lw=0.8, color="black")
+    ax[0].axhline(C.DENS_OGGI, ls="--", lw=0.8, color="#ffffff")
     ax[0].set_title(f"Densità FTE/100k a pop. 2026 fissa (precari_anni={C.PRECARI_ANNI})")
-    ax[0].set_xlabel("anno"); ax[0].legend(fontsize=8)
+    ax[0].set_xlabel("anno"); ax[0].legend(fontsize=10.4)
     ax[1].set_title("Budget pubblico aggiuntivo (% PIL)")
-    ax[1].set_xlabel("anno"); ax[1].legend(fontsize=8)
+    ax[1].set_xlabel("anno"); ax[1].legend(fontsize=10.4)
     fig.tight_layout()
-    fig.savefig(path, dpi=130)
+    fig.savefig(path, dpi=130, transparent=True)
     plt.close(fig)
 
 
@@ -355,7 +413,7 @@ def grafico_ffo(dfs: dict[str, pd.DataFrame], fine: int, path: str,
             ax.plot(d["anno"], y, lw=sp, color=PAL[nome],
                     label=nome.replace("_", " "), solid_capstyle="round")
             ax.annotate(f"{y.iloc[-1]:.1f}", (d["anno"].iloc[-1], y.iloc[-1]),
-                        textcoords="offset points", xytext=(4, 0), fontsize=8.5,
+                        textcoords="offset points", xytext=(4, 0), fontsize=11.05,
                         color=INK2, va="center")
             # Solo sul pannello del TOTALE: la stessa curva al netto dell'IRPEF che
             # quegli stipendi in più pagano. Tratteggiata e nello stesso colore
@@ -365,37 +423,37 @@ def grafico_ffo(dfs: dict[str, pd.DataFrame], fine: int, path: str,
             if col is None:
                 ax.plot(d["anno"], d["dStato_netto_irpef_mld"], lw=sp * 0.62,
                         color=PAL[nome], ls=(0, (4, 2.2)), solid_capstyle="round")
-        ax.axhline(0, lw=1.0, color="#c3c2b7")
-        ax.set_title(tit, fontsize=10, color=INK, loc="left", pad=8)
+        ax.axhline(0, lw=1.0, color="#ffffff")
+        ax.set_title(tit, fontsize=13, color=INK, loc="left", pad=8)
         ax.grid(True, lw=0.6, color=GRID)
         ax.set_axisbelow(True)
         # ogni tacca porta anche la quota della R&S pubblica di oggi
         ax.yaxis.set_major_formatter(plt.FuncFormatter(_tick_mld_pct))
-        ax.tick_params(labelsize=8, colors=MUTED, length=0)
+        ax.tick_params(labelsize=10.4, colors=MUTED, length=0)
         for lato in ("top", "right"):
             ax.spines[lato].set_visible(False)
         for lato in ("left", "bottom"):
-            ax.spines[lato].set_color("#c3c2b7")
+            ax.spines[lato].set_color("#ffffff")
         ax.set_facecolor("#fcfcfb")
         ax.margins(x=0.10)
     if len(dfs) > 1:      # con una serie sola è il titolo a nominarla
-        axes[0].legend(fontsize=8.5, frameon=False, labelcolor=INK2, loc="upper left")
+        axes[0].legend(fontsize=11.05, frameon=False, labelcolor=INK2, loc="upper left")
     # legenda dello STILE, non del colore: sul terzo pannello ogni scenario compare due
     # volte, lordo e netto, e sono i tratti a distinguerli
     axes[2].legend(handles=[plt.Line2D([], [], color=MUTED, lw=2.4, label="lordo"),
                             plt.Line2D([], [], color=MUTED, lw=1.6, ls=(0, (4, 2.2)),
                                        label="netto IRPEF")],
-                   fontsize=8.5, frameon=False, labelcolor=INK2, loc="upper left")
-    fig.suptitle(titolo or "Maggior fabbisogno annuo rispetto a oggi (EUR2026 costanti)",
-                 fontsize=12.5, color=INK, x=0.006, ha="left", y=0.99)
+                   fontsize=11.05, frameon=False, labelcolor=INK2, loc="upper left")
+    fig.suptitle(titolo or "Maggior fabbisogno annuo rispetto a oggi \n (EUR2026 costanti)",
+                 fontsize=16.25, color=INK, x=0.006, ha="left", y=0.99)
     fig.text(0.006, 0.945, f"Sulle tacche: mld EUR/anno e, fra parentesi, la stessa "
              f"cifra come quota della R&S pubblica del {C.ANNO0} "
              f"(HERD+GOVERD = {rs_pubblica_oggi_mld():.1f} mld).\nNel terzo pannello il "
              f"tratteggio è lo stesso fabbisogno al netto della sola IRPEF che i nuovi "
              f"stipendi versano: la distanza fra le due linee è il retroflusso.",
-             fontsize=8.5, color=INK2, ha="left", va="top")
+             fontsize=11.05, color=INK2, ha="left", va="top")
     fig.tight_layout(rect=(0, 0, 1, 0.90))
-    fig.savefig(path, dpi=140, facecolor="#fcfcfb")
+    fig.savefig(path, dpi=140, transparent=True)
     plt.close(fig)
 
 
@@ -407,7 +465,9 @@ def _ink_su(hex_fondo: str) -> str:
     r, g, b = (int(hex_fondo[i:i + 2], 16) / 255 for i in (1, 3, 5))
     lin = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in (r, g, b)]
     lum = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
-    return "#fcfcfb" if lum < 0.35 else INK
+    # NB: non usa INK, che qui è bianco (elemento di supporto): questo è testo
+    # su una fascia colorata piena, e su tinte chiare serve inchiostro scuro.
+    return "#fcfcfb" if lum < 0.35 else "#111111"
 
 
 def _posa_etichetta(anni: np.ndarray, basso: np.ndarray, alto: np.ndarray,
@@ -421,11 +481,11 @@ def _posa_etichetta(anni: np.ndarray, basso: np.ndarray, alto: np.ndarray,
     spessore UTILE: l'intersezione della fascia su una finestra larga quanto il testo.
     Restituisce (anno, y) del centro."""
     n = len(anni)
-    # mezza larghezza del testo in anni: ~0,46 anni per carattere a fontsize 8.5 su
+    # mezza larghezza del testo in anni: ~0,60 anni per carattere a fontsize ~11 su
     # un pannello tipico di questa figura, con un minimo di 3 per le etichette corte.
     # Il margine è volutamente generoso: serve anche a tenere il testo staccato dai
     # bordi del pannello, non solo dentro la fascia.
-    w = max(3, int(nchar * 0.46))
+    w = max(3, int(nchar * 0.60))
     if n <= 2 * w + 1:
         return None
     # i centri candidati stanno a distanza >= w dai bordi: la finestra è sempre piena
@@ -450,7 +510,7 @@ def _posa_ripiego(anni: np.ndarray, basso: np.ndarray, alto: np.ndarray,
     # stesso margine dai bordi di _posa_etichetta, cosi' il testo non tocca le cornici;
     # cambia solo il criterio: spessore grezzo invece dell'intersezione su finestra,
     # perchè qui l'intersezione è comunque troppo piccola per contenere il testo
-    w = max(3, int(nchar * 0.46)) + 1
+    w = max(3, int(nchar * 0.60)) + 1
     n = len(anni)
     a = min(w, n - 1)
     b = max(n - w, a + 1)
@@ -465,7 +525,7 @@ def _scrivi_in_fascia(ax, testo: str, posa: tuple[float, float], col: str,
     colore della fascia stessa: il testo resta leggibile e si legge come appartenente
     alla striscia, non a quelle che invade."""
     eff = ([pe.withStroke(linewidth=2.6, foreground=col)] if sborda else None)
-    ax.annotate(testo, posa, fontsize=8.5, ha="center", va="center",
+    ax.annotate(testo, posa, fontsize=11.05, ha="center", va="center",
                 linespacing=1.35, color=_ink_su(col), path_effects=eff, zorder=7)
 
 
@@ -515,15 +575,15 @@ def grafico_stack(dfs: dict[str, pd.DataFrame], fine: int, path: str,
             _scrivi_in_fascia(ax, lab,
                               posa or _posa_ripiego(anni, basso[k], cum[k], len(lab)),
                               col, sborda=posa is None)
-        #ax.set_title(etich[nome], fontsize=10, color=INK, loc="left", pad=8)
+        #ax.set_title(etich[nome], fontsize=13, color=INK, loc="left", pad=8)
         ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:,.0f}"))
         ax.grid(True, axis="y", lw=0.6, color=GRID)
         ax.set_axisbelow(True)
-        ax.tick_params(labelsize=8, colors=MUTED, length=0)
+        ax.tick_params(labelsize=10.4, colors=MUTED, length=0)
         for lato in ("top", "right"):
             ax.spines[lato].set_visible(False)
         for lato in ("left", "bottom"):
-            ax.spines[lato].set_color("#c3c2b7")
+            ax.spines[lato].set_color("#ffffff")
         ax.set_facecolor("#fcfcfb")
         ax.set_xlim(d["anno"].iloc[0], d["anno"].iloc[-1])
         ax.set_ylim(0, ytop)
@@ -538,29 +598,29 @@ def grafico_stack(dfs: dict[str, pd.DataFrame], fine: int, path: str,
                  zorder=6, label="Densità FTE/100k (asse destro)")
         axr.set_ylim(0, max(df[df["anno"] <= fine]["densita"].max()
                             for df in dfs.values()) * 1.10)
-        axr.tick_params(labelsize=8, colors=INK, length=0)
+        axr.tick_params(labelsize=10.4, colors=INK, length=0)
         axr.set_facecolor("none")
         for lato in ("top", "left", "bottom"):
             axr.spines[lato].set_visible(False)
-        axr.spines["right"].set_color("#c3c2b7")
+        axr.spines["right"].set_color("#ffffff")
         # la scala destra è la stessa in tutti i pannelli: tacche e titolo solo
         # sull'ultimo, come fa sharey per l'asse sinistro
         if ax is np.atleast_1d(axes)[-1]:
-            axr.set_ylabel("Densità FTE per 100k abitanti (pop. SSP2)", fontsize=8.5,
+            axr.set_ylabel("Densità FTE per 100k abitanti (pop. SSP2)", fontsize=11.05,
                            color=INK)
         else:
             axr.set_yticklabels([])
     ass = np.atleast_1d(axes)
-    ass[0].set_ylabel("Numero Posizioni", fontsize=8.5, color=INK2)
+    ass[0].set_ylabel("Numero Posizioni", fontsize=11.05, color=INK2)
     # In legenda SOLO la linea dell'asse destro: le fasce sono tutte nominate dentro il
     # grafico, quindi ripeterle in legenda sarebbe ridondante. La tratteggiata invece va
     # dichiarata, perchè è l'unica marca che legge su un'altra scala.
     h_fte = plt.Line2D([], [], lw=1.8, ls=(0, (5, 2.5)), color=INK)
-    fig.legend([h_fte], ["Densità FTE per 100k abitanti (asse destro)"], fontsize=8.5,
+    fig.legend([h_fte], ["Densità FTE per 100k abitanti (asse destro)"], fontsize=11.05,
                frameon=False, labelcolor=INK2, loc="lower center",
                bbox_to_anchor=(0.5, -0.005))
     fig.suptitle(f"Composizione dell'organico della ricerca pubblica, {C.ANNO0}-{fine} "
-                 "(posizioni)", fontsize=12.5, color=INK, x=0.006, ha="left", y=0.995)
+                 "(posizioni)", fontsize=16.25, color=INK, x=0.006, ha="left", y=0.995)
     # su una figura strettta (un pannello solo) il sottotitolo va su due righe, altrimenti
     # esce dal bordo destro
     stretta = fig.get_figwidth() < 12
@@ -579,7 +639,7 @@ def grafico_stack(dfs: dict[str, pd.DataFrame], fine: int, path: str,
               f"Ordinari e associati ripartiti a quota fissa {C.QUOTA_PO:.0%}/"
               f"{1 - C.QUOTA_PO:.0%} (MUR 2023): soglia di anzianità non calibrata.")
     fig.tight_layout(rect=(0, 0.055, 1, 0.865 if stretta else 0.895))
-    fig.savefig(path, dpi=140, facecolor="#fcfcfb")
+    fig.savefig(path, dpi=140, transparent=True)
     plt.close(fig)
 
 
@@ -608,7 +668,7 @@ def grafico_spesa_stack(dfs: dict[str, pd.DataFrame], fine: int, path: str,
     pagano imposta sul reddito, quindi ogni euro di quella fascia entra nel netto per
     intero."""
     etich = etich or {n: n.replace("_", " ") for n in dfs}
-    fig, axes = plt.subplots(1, len(dfs), figsize=(max(8.6, 5.0 * len(dfs)), 5.0),
+    fig, axes = plt.subplots(1, len(dfs), figsize=(max(6.6, 4.0 * len(dfs)), 5.0),
                              facecolor="#fcfcfb", sharey=True)
     # su un DataFrame che non è passato da piano_attrezzature() non ci sono nè la
     # fascia delle attrezzature nè le colonne di ramo al netto del supplemento: si
@@ -627,9 +687,11 @@ def grafico_spesa_stack(dfs: dict[str, pd.DataFrame], fine: int, path: str,
     ytop = max((df[df["anno"] <= fine][[c for c, _, _, _ in voci]].sum(axis=1)).max()
                for df in dfs.values()) * aria
     # margine sotto lo zero: il 35% in più del rientro massimo, che è lo spazio per
-    # scriverci dentro l'etichetta senza che tocchi il bordo inferiore
-    ybot = -max(df[df["anno"] <= fine][SPESA_IRPEF[0]].max()
-                for df in dfs.values()) * 1.35
+    # scriverci dentro l'etichetta senza che tocchi il bordo inferiore.
+    # Senza la fascia del rientro non serve parte negativa: resta un filo d'aria,
+    # quanto basta alla linea storica che scende appena sotto lo zero nel 2024.
+    ybot = (-max(df[df["anno"] <= fine][SPESA_IRPEF[0]].max()
+                 for df in dfs.values()) * 1.35) if MOSTRA_IRPEF else -0.03 * ytop
     span = ytop - ybot
     for ax, (nome, df) in zip(np.atleast_1d(axes), dfs.items()):
         d = df[df["anno"] <= fine]
@@ -641,8 +703,9 @@ def grafico_spesa_stack(dfs: dict[str, pd.DataFrame], fine: int, path: str,
         ax.stackplot(d["anno"], y, colors=[col for _, _, col, _ in voci],
                      labels=[lab for _, lab, _, _ in voci],
                      edgecolor="#fcfcfb", linewidth=0.9)
-        ax.fill_between(d["anno"], 0.0, -irp, color=SPESA_IRPEF[2],
-                        label=SPESA_IRPEF[1], edgecolor="#fcfcfb", linewidth=0.9)
+        if MOSTRA_IRPEF:
+            ax.fill_between(d["anno"], 0.0, -irp, color=SPESA_IRPEF[2],
+                            label=SPESA_IRPEF[1], edgecolor="#fcfcfb", linewidth=0.9)
         ax.plot(d["anno"], cum[-1], lw=2.4, color=PAL[nome],
                 solid_capstyle="round", zorder=5)
         # il NETTO, cioè il saldo fra le due aree. Tratteggiato e nel colore del
@@ -656,11 +719,23 @@ def grafico_spesa_stack(dfs: dict[str, pd.DataFrame], fine: int, path: str,
                 path_effects=[pe.withStroke(linewidth=2.5, foreground="#fcfcfb")])
         # lo zero non è più una cornice ma la linea di separazione fra i due segni,
         # quindi porta più inchiostro delle altre
-        ax.axhline(0, lw=1.4, color="#8a8981", zorder=7)
+        ax.axhline(0, lw=1.4, color="#ffffff", zorder=7)
+        # --- contesto storico, a sinistra dello zero ---
+        # nera piena, senza alone. Tratteggiata dove è proiezione, continua dove sono
+        # i dati veri: la linea deve dire da sola dove finisce il misurato.
+        sa, sy = _ffo_storico_rel2026()
+        k = int(np.searchsorted(sa, 2022))
+        ax.plot(sa[:k + 1], sy[:k + 1], lw=2.0, color="#000000", zorder=8,
+                ls=(0, (4, 2.2)), solid_capstyle="round")
+        ax.plot(sa[k:], sy[k:], lw=2.0, color="#000000", zorder=8,
+                solid_capstyle="round",
+                label=f"FFO reale, {FFO_STORICO_DA}-{C.ANNO0}")
+        # dove finisce la storia e comincia il piano
+        ax.axvline(C.ANNO0, lw=1.0, ls=(0, (3, 3)), color=(1, 1, 1, 0.35), zorder=3)
         # i valori portano inchiostro di testo, non il colore della serie - tranne
         # quelli del retroflusso, che sono l'eccezione perchè lì il colore È l'etichetta
         ax.annotate(f"Lordo +{cum[-1][-1]:.1f} Mld EUR", (d["anno"].iloc[-1], cum[-1][-1]),
-                    textcoords="offset points", xytext=(-2, 20), fontsize=9.5,
+                    textcoords="offset points", xytext=(-2, 20), fontsize=12.35,
                     color=INK, ha="right")
         # il picco non coincide col valore a regime: l'onda dei pensionamenti lo alza
         # per una ventina d'anni, ed è il numero che conta per la programmazione. Sta
@@ -671,25 +746,25 @@ def grafico_spesa_stack(dfs: dict[str, pd.DataFrame], fine: int, path: str,
         # riga ripeterebbe il numero appena scritto sopra. La soglia di mezzo decimo di
         # miliardo è quella sotto la quale i due numeri si arrotondano uguali.
         kp = int(np.argmax(cum[-1]))
-        if cum[-1][kp] - cum[-1][-1] > 0.05:
-            ax.annotate(f"(Picco {cum[-1][kp]:.1f} Mld EUR)",
-                        (d["anno"].iloc[-1], cum[-1][-1]), textcoords="offset points",
-                        xytext=(-2, 15), fontsize=8.5, color=INK2, ha="right", va="top",
-                        zorder=8,
-                        bbox=dict(boxstyle="round,pad=0.28", facecolor="#fcfcfb",
-                                  edgecolor="#c3c2b7", linewidth=0.7, alpha=0.92))
-        # alone: questa etichetta cade DENTRO la fascia universitaria, e il colore del
-        # retroflusso sul verde regge ma non è brillante (ΔE2000 34.1). L'alone la
-        # stacca dal fondo senza doverle cambiare colore - e il colore qui è
-        # informazione, dice che il numero appartiene al retroflusso e non alla spesa
+        #if cum[-1][kp] - cum[-1][-1] > 0.05:
+        #    ax.annotate(f"(Picco {cum[-1][kp]:.1f} Mld EUR)",
+        #                (d["anno"].iloc[-1], cum[-1][-1]), textcoords="offset points",
+        #                xytext=(-2, 15), fontsize=11.05, color=INK2, ha="right", va="top",
+        #                zorder=8,
+        #                bbox=dict(boxstyle="round,pad=0.28", facecolor="#1c1c1c",
+        #                          edgecolor="#ffffff", linewidth=0.7, alpha=0.82))
+        # questa etichetta cade DENTRO la fascia universitaria (verde chiaro): testo
+        # scuro con SOLO il contorno bianco, che lo stacca dal fondo. Non usa INK,
+        # che qui è bianco e su quel verde sparirebbe.
         ax.annotate(f"Netto +{cum[-1][-1] - irp[-1]:.1f} Mld EUR",
                     (d["anno"].iloc[-1], cum[-1][-1] - irp[-1]),
-                    textcoords="offset points", xytext=(-3, -4), fontsize=8.5,
-                    color=INK, ha="right", va="top", zorder=8,
-                    path_effects=[pe.withStroke(linewidth=2.6, foreground="#fcfcfb")])
-        ax.annotate(f"Tasse -{irp[-1]:.1f} Mld EUR", (d["anno"].iloc[-1], -irp[-1]),
-                    textcoords="offset points", xytext=(-2, -3), fontsize=8.5,
-                    color=INK, ha="right", va="top")
+                    textcoords="offset points", xytext=(-3, -4), fontsize=11.05,
+                    color="#111111", ha="right", va="top", zorder=8,
+                    path_effects=[pe.withStroke(linewidth=2.6, foreground="#ffffff")])
+        if MOSTRA_IRPEF:
+            ax.annotate(f"Tasse -{irp[-1]:.1f} Mld EUR", (d["anno"].iloc[-1], -irp[-1]),
+                        textcoords="offset points", xytext=(-2, -3), fontsize=11.05,
+                        color=INK, ha="right", va="top")
         # etichette dirette dentro le fasce, come nello stack dell'organico. La fascia
         # del rientro entra nella stessa lista con estremi (-irp, 0): sotto lo zero il
         # criterio di posa non cambia, è sempre "dove la fascia è più spessa su una
@@ -699,50 +774,68 @@ def grafico_spesa_stack(dfs: dict[str, pd.DataFrame], fine: int, path: str,
         # estremi ricavati dalle cumulate invece che scritti a mano: le fasce sopra lo
         # zero sono quante ne ha 'voci', e la fascia del rientro si aggiunge in coda
         estremi = [(b, a) for b, a in zip(np.vstack([np.zeros(len(d)), cum[:-1]]), cum)]
-        estremi.append((-irp, np.zeros(len(d))))
-        for (lo, hi), (_, _, col, dentro) in zip(estremi, [*voci, SPESA_IRPEF]):
+        etichettate = list(voci)
+        if MOSTRA_IRPEF:
+            estremi.append((-irp, np.zeros(len(d))))
+            etichettate.append(SPESA_IRPEF)
+        for (lo, hi), (_, _, col, dentro) in zip(estremi, etichettate):
             # la larghezza che conta è quella della riga più lunga, non del testo
             nch = max(len(r) for r in dentro.splitlines())
             posa = _posa_etichetta(anni, lo, hi, span, nch, 0.055)
             if posa is None:
                 continue
-            ax.annotate(dentro, posa, fontsize=8.5, ha="center", va="center",
+            ax.annotate(dentro, posa, fontsize=11.05, ha="center", va="center",
                         linespacing=1.35, color=_ink_su(col))
-        #ax.set_title(etich[nome], fontsize=10, color=INK, loc="left", pad=8)
-        ax.grid(True, axis="y", lw=0.6, color=GRID)
-        ax.set_axisbelow(True)
+        #ax.set_title(etich[nome], fontsize=13, color=INK, loc="left", pad=8)
+        # niente griglia dietro le fasce: qui le tacche bastano a dare la scala
         # ogni tacca porta anche la quota della R&S pubblica di oggi
         ax.yaxis.set_major_formatter(plt.FuncFormatter(_tick_mld_pct))
-        ax.tick_params(labelsize=8, colors=MUTED, length=0)
-        for lato in ("top", "right"):
+        # asse y a destra: tacche ed etichette sul lato destro di ogni pannello
+        ax.yaxis.tick_right()
+        ax.yaxis.set_label_position("right")
+        ax.tick_params(labelsize=10.4, colors=MUTED, length=0)
+        for lato in ("top", "left"):
             ax.spines[lato].set_visible(False)
-        for lato in ("left", "bottom"):
-            ax.spines[lato].set_color("#c3c2b7")
+        for lato in ("right", "bottom"):
+            ax.spines[lato].set_color("#ffffff")
         ax.set_facecolor("#fcfcfb")
-        ax.set_xlim(d["anno"].iloc[0], d["anno"].iloc[-1])
+        # l'asse comincia dove comincia il contesto storico, non dal 2026
+        ax.set_xlim(FFO_STORICO_DA, d["anno"].iloc[-1])
         ax.set_ylim(ybot, ytop)
     ass = np.atleast_1d(axes)
-    ass[0].set_ylabel("Mld EUR/anno in più rispetto ad oggi (EUR2026)\n",
-                      fontsize=8.5, color=INK2)
+    # titolo dell'asse sul pannello più a destra, dove ora cadono le tacche
+    ass[-1].set_ylabel("\nMld EUR/anno in più rispetto ad oggi\n(EUR2026)",
+                       fontsize=11.05, color=INK2)
     # come nello stack dell'organico: su una figura stretta (un pannello solo) il
     # sottotitolo va spezzato, altrimenti esce dal bordo destro
     stretta = fig.get_figwidth() < 12
     h, l = ass[0].get_legend_handles_labels()
-    # con la fascia delle attrezzature le voci sono quattro, e su una riga sola non
-    # stanno in una figura a un pannello: li' vanno su due colonne, e la fascia in
-    # fondo alla figura si allarga di conseguenza
-    ncol = len(l) if not stretta or len(l) <= 3 else 2
+    # Quante colonne ci stanno DAVVERO: decide la voce più lunga, non il numero di
+    # voci. Con le etichette per esteso e una figura a un pannello due colonne non
+    # entrano, e la legenda usciva dal bordo. A fontsize 11 un carattere occupa
+    # ~0,075", più ~0,6" fra pastiglia e margine di colonna.
+    FS_LEG = 11.05
+    largh_voce = max(len(s) for s in l) * FS_LEG * 0.0068 + 0.6
+    ncol = max(1, min(len(l), int(fig.get_figwidth() / largh_voce)))
     righe_leg = -(-len(l) // ncol)
-    fig.legend(h[::-1], l[::-1], fontsize=8.5, frameon=False, labelcolor=INK2,
-               loc="lower center", ncol=ncol, bbox_to_anchor=(0.5, -0.005))
+    # la fascia riservata in fondo si calcola sull'altezza VERA delle righe (interlinea
+    # 1,6 sul corpo), non su un forfait: con cinque righe il forfait le tagliava.
+    banda = righe_leg * FS_LEG * 1.6 / 72 / fig.get_figheight() + 0.02
+    # ancorata DENTRO la figura, non a -0.005: sotto il bordo veniva tagliata in
+    # salvataggio, perchè savefig non allarga la tela per gli artisti che sporgono
+    fig.legend(h[::-1], l[::-1], fontsize=FS_LEG, frameon=False, labelcolor=INK2,
+               loc="lower center", ncol=ncol, bbox_to_anchor=(0.5, 0.004))
     # titolo su due righe: una riga sola sfora la figura strettta a un pannello.
     # "per voce" con la fascia delle attrezzature, che voce di bilancio non è: senza,
     # le fasce sono i due rami e basta, e il titolo torna a dire quello.
-    fig.suptitle(f"Fondi per la ricerca pubblica: variazione annua rispetto al {C.ANNO0}, "
-                 f"per {'voce' if len(voci) > 2 else 'ramo'} di bilancio",
-                 fontsize=12.5, color=INK, x=0.006, ha="left", y=0.995)
-    fig.tight_layout(rect=(0, 0.06 * righe_leg, 1, 0.895 if stretta else 0.915))
-    fig.savefig(path, dpi=140, facecolor="#fcfcfb")
+    # su figura stretta il titolo va spezzato DAVVERO, non solo previsto dal commento:
+    # a una riga sola sfora il bordo destro e si perde la seconda metà
+    sep = "\n" if stretta else " "
+    fig.suptitle(f"Fondi per la ricerca pubblica:{sep}variazione annua rispetto al "
+                 f"{C.ANNO0}, per {'voce' if len(voci) > 2 else 'ramo'} di bilancio",
+                 fontsize=16.25, color=INK, x=0.006, ha="left", y=0.995)
+    fig.tight_layout(rect=(0, banda, 1, 0.86 if stretta else 0.915))
+    fig.savefig(path, dpi=140, transparent=True)
     plt.close(fig)
 
 

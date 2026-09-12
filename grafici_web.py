@@ -212,14 +212,10 @@ def carriere(df, fine=None) -> go.Figure:
     # al denominatore. Messa qui accanto alla precaria darebbe due convenzioni diverse
     # sullo stesso grafico, cioè due linee che non si possono leggere insieme.
     d["_ruolo"] = 100 - d["componente_precaria"]
-    d["_p1"] = d["P1_effettivo"] * 100
     _linea(f, d, "componente_precaria",
            "precari = solo postdoc", COL["postdoc"], ".1f")
     _linea(f, d, "_ruolo", "di ruolo = prof + ric. a tempo ind. + RTT",
            COL["prof"], ".1f")
-    # COL["phd"] e non uno slot libero di palette: P1 è una quota del FLUSSO DI
-    # DOTTORI, non una fetta dell'organico, e il colore deve dire di cosa parla.
-    _linea(f, d, "_p1", "P1: dottori che proseguono", COL["phd"], ".1f", "dash", 1.8)
     return f
 
 
