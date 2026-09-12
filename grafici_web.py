@@ -27,6 +27,15 @@ COL = {"phd": "#7C93C3", "postdoc": "#E8A33D", "rtt": "#5BA88F", "ric_uni": "#4E
        "herd": "#1F4E79", "goverd": "#C6743A", "totale": "#2E7D5B",
        "lordo": "#B3574A", "netto": "#2E7D5B", "obiettivo": "#8A8F98"}
 
+# Modalita' di hover, condivisa da tutti i grafici. E' un flag di modulo e non un
+# parametro delle funzioni perche' i grafici sono sette e la leva e' una sola: app.py
+# la imposta una volta prima di disegnare. False = nessun riquadro di valori.
+#
+# Serve perche' su TOUCH il riquadro non si chiude: il dito lo fissa su un anno e non
+# esiste il "via il mouse" che su desktop lo fa sparire. Senza un interruttore, chi
+# legge da telefono resta con mezzo grafico coperto e nessun modo di scoprirlo.
+HOVER: str | bool = "x unified"
+
 _ASSE = dict(showgrid=True, gridcolor="rgba(128,128,128,.22)", zeroline=False)
 
 
@@ -38,18 +47,22 @@ def _base(titolo: str, y: str, fine: int | None = None, zero: bool = True) -> go
     grafico. Li' si lascia autoscalare."""
     f = go.Figure()
     f.update_layout(
-        # Titolo e legenda vivono tutti e due nella fascia sopra l'area di disegno. Col
-        # titolo a y="auto" plotly lo centra NEL MARGINE, cioe' esattamente dove la
-        # legenda orizzontale si appoggia: finche' la legenda sta su una riga sembra
-        # funzionare, ma organico ha otto voci e va a capo, e la prima riga finisce
-        # sotto il titolo. Le due bande vanno quindi ancorate a quote diverse: il
-        # titolo in cima al CONTENITORE, la legenda appena sopra il grafico, e un
-        # margine superiore che le tenga separate anche a due righe di legenda.
+        # La fascia in cima e' contesa da tre cose: titolo, legenda e barra strumenti.
+        # Su desktop ci stanno; su telefono no, e il modo in cui saltano e' istruttivo.
+        # La legenda orizzontale va a capo una voce per riga - organico ne ha otto -
+        # e cresce VERSO L'ALTO, quindi si mangia il titolo; la barra strumenti di
+        # plotly sta in alto a destra e a schermo stretto finisce sopra il titolo, che
+        # nel frattempo occupa quasi tutta la larghezza.
+        #
+        # Percio' le tre cose si separano invece di spartirsi la stessa banda: il
+        # titolo da solo in cima al CONTENITORE, la legenda SOTTO il grafico (dove
+        # crescendo verso il basso non incontra nulla, e plotly allarga il margine
+        # inferiore da se'), e la barra strumenti spenta da app.py via config.
         title=dict(text=titolo, font=dict(size=16),
                    yref="container", y=1.0, yanchor="top", pad=dict(t=12)),
-        hovermode="x unified", template="plotly_white",
-        margin=dict(l=10, r=10, t=96, b=10), height=470,
-        legend=dict(orientation="h", yanchor="bottom", y=1.0, xanchor="left", x=0),
+        hovermode=HOVER, template="plotly_white",
+        margin=dict(l=10, r=10, t=60, b=10), height=470,
+        legend=dict(orientation="h", yanchor="top", y=-0.14, xanchor="left", x=0),
         xaxis=dict(title="", range=[C.ANNO0, fine or C.FINE_GRAFICI], **_ASSE),
         yaxis=dict(title=y, rangemode="tozero" if zero else "normal", **_ASSE),
         hoverlabel=dict(namelength=-1))
