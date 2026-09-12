@@ -324,21 +324,27 @@ def _grafico(nome: str, fn, *args) -> None:
       legge un grafico alla volta, e il comando che libera quello che stai guardando
       non puo' essere tre schermate piu' su. Per lo stesso motivo non sta in sidebar,
       che su mobile e' chiusa dietro il pulsante ">>".
-    - la key del grafico si porta dentro lo stato dell'interruttore. Senza, Streamlit
-      AGGIORNA il grafico gia' montato: plotly recepisce la nuova modalita' di hover,
-      ma il riquadro aperto col dito resta disegnato dov'e' e spegnere l'interruttore
-      sembra non fare nulla. Cambiando key il grafico viene RIMONTATO da zero, e il
-      riquadro se ne va insieme al vecchio nodo.
+    - il riquadro va BUTTATO, non solo disattivato. Cambiare hovermode dice a plotly
+      di non aprirne di nuovi, ma quello gia' aperto col dito resta disegnato: e' un
+      elemento nel hoverlayer, e nessuno lo cancella finche' plotly si limita ad
+      AGGIORNARE il grafico. Da qui i due sintomi gemelli - spengo e i numeri restano
+      finche' non tocco di nuovo; riaccendo e il primo tocco non mostra niente perche'
+      sta solo togliendo il riquadro vecchio. Stessa causa, non due bug.
+
+      Percio' lo stato dell'interruttore entra sia nella key di Streamlit sia nelle
+      uid delle tracce: con uid diverse plotly non riconosce le tracce come le stesse
+      e rifa' il disegno da capo invece di ritoccarlo, e nel disegno da capo il
+      hoverlayer riparte vuoto.
 
     G.HOVER va impostato PRIMA di costruire la figura: i grafici leggono la modalita'
     dal flag di modulo, non da un parametro.
     """
-    on = st.toggle("Mostra i valori sul grafico", True, key="hv_" + nome,
-                   help="Il riquadro con i numeri di un singolo anno. Spegnilo per "
-                        "liberare il grafico: da telefono è l'unico modo di "
-                        "chiuderlo dopo averlo aperto con un tocco.")
+    on = st.toggle("Mostra i valori sul grafico", True, key="hv_" + nome)
     G.HOVER = "x unified" if on else False
-    st.plotly_chart(fn(*args), width="stretch", config=CFG, key=f"g_{nome}_{int(on)}")
+    fig = fn(*args)
+    for i, tr in enumerate(fig.data):
+        tr.uid = f"{nome}-{int(on)}-{i}"
+    st.plotly_chart(fig, width="stretch", config=CFG, key=f"g_{nome}_{int(on)}")
 
 
 t1, t2, t4, t5 = st.tabs(["Organico", "Spesa", "Didattica", "Tabella"])
