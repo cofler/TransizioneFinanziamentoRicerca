@@ -256,16 +256,6 @@ confronta = st.sidebar.checkbox(
     "Confronta con gli scenari FLC ed ERA", False,
     help="Aggiunge i due baseline tutto-cattedre. Costa due simulazioni in più.")
 
-# Su desktop il riquadro dei valori compare al passaggio del mouse e sparisce da se';
-# su TOUCH no: il dito lo fissa su un anno e non c'e' modo di toglierlo, perche' non
-# esiste un "via il mouse". Questo e' il declic. Va letto PRIMA di disegnare: i grafici
-# lo prendono dal flag di modulo, non da un parametro.
-G.HOVER = "x unified" if st.sidebar.checkbox(
-    "Mostra i valori sul grafico", True,
-    help="Il riquadro con i numeri di un singolo anno. Toglilo per liberare il "
-         "grafico: da telefono e' l'unico modo di chiuderlo dopo averlo aperto con "
-         "un tocco.") else False
-
 # Barra strumenti di plotly spenta: zoom e pan non servono - l'asse degli anni ha un
 # intervallo fisso - e in compenso a schermo stretto le icone finiscono sopra il
 # titolo del grafico. Resta il pulsante schermo intero di Streamlit.
@@ -323,13 +313,27 @@ c[3].metric("Componente precaria (%)", v, d, delta_color="inverse",
             help="Quota di postdoc sul personale di ricerca.")
 
 # --- grafici -----------------------------------------------------------------------
+# Il declic del riquadro dei valori. Su desktop il riquadro compare al passaggio del
+# mouse e sparisce da se'; su TOUCH no - il dito lo fissa su un anno e non esiste un
+# "via il mouse" che lo tolga.
+#
+# Sta nel CORPO e non nella sidebar, che su telefono e' chiusa dietro il pulsante ">>":
+# il comando che serve a liberare un grafico coperto non puo' essere nel pannello che
+# da telefono non si vede. Va letto PRIMA di disegnare: i grafici prendono la modalita'
+# dal flag di modulo, non da un parametro.
+G.HOVER = "x unified" if st.toggle(
+    "Mostra i valori sul grafico", True,
+    help="Il riquadro con i numeri di un singolo anno. Spegnilo per liberare il "
+         "grafico: da telefono è l'unico modo di chiuderlo dopo averlo aperto con "
+         "un tocco.") else False
+
 t1, t2, t4, t5 = st.tabs(["Organico", "Spesa", "Didattica", "Tabella"])
 
 with t1:
     st.markdown("Chi c'è nel sistema, anno per anno. Passa il mouse su un anno - o "
                 "toccalo, da telefono - per leggere tutti i livelli insieme; clicca "
                 "una voce in legenda per toglierla. Il riquadro dei numeri si chiude "
-                "dalla sidebar, con **Mostra i valori sul grafico**.")
+                "con l'interruttore **Mostra i valori sul grafico** qui sopra.")
     st.plotly_chart(G.organico(df, ANNO_FINE), width="stretch", config=CFG)
     st.markdown("La precarietà in quota: quanti stanno in un "
                 "compartimento a esito incerto rispetto al totale. ")

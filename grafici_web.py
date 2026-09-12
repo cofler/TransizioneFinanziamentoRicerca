@@ -58,10 +58,15 @@ def _base(titolo: str, y: str, fine: int | None = None, zero: bool = True) -> go
         # titolo da solo in cima al CONTENITORE, la legenda SOTTO il grafico (dove
         # crescendo verso il basso non incontra nulla, e plotly allarga il margine
         # inferiore da se'), e la barra strumenti spenta da app.py via config.
+        #
+        # pad.t basso alza il titolo verso il bordo, margin.t alto spinge giu' l'area
+        # di disegno: insieme aprono la distanza fra il titolo e cio' che gli sta
+        # sotto. height sale di altrettanto, se no la fascia piu' alta si pagherebbe
+        # con altrettanto grafico in meno.
         title=dict(text=titolo, font=dict(size=16),
-                   yref="container", y=1.0, yanchor="top", pad=dict(t=12)),
+                   yref="container", y=1.0, yanchor="top", pad=dict(t=4)),
         hovermode=HOVER, template="plotly_white",
-        margin=dict(l=10, r=10, t=60, b=10), height=470,
+        margin=dict(l=10, r=10, t=84, b=10), height=486,
         legend=dict(orientation="h", yanchor="top", y=-0.14, xanchor="left", x=0),
         xaxis=dict(title="", range=[C.ANNO0, fine or C.FINE_GRAFICI], **_ASSE),
         yaxis=dict(title=y, rangemode="tozero" if zero else "normal", **_ASSE),
