@@ -324,27 +324,30 @@ def _grafico(nome: str, fn, *args) -> None:
       legge un grafico alla volta, e il comando che libera quello che stai guardando
       non puo' essere tre schermate piu' su. Per lo stesso motivo non sta in sidebar,
       che su mobile e' chiusa dietro il pulsante ">>".
-    - il riquadro va BUTTATO, non solo disattivato. Cambiare hovermode dice a plotly
-      di non aprirne di nuovi, ma quello gia' aperto col dito resta disegnato: e' un
-      elemento nel hoverlayer, e nessuno lo cancella finche' plotly si limita ad
-      AGGIORNARE il grafico. Da qui i due sintomi gemelli - spengo e i numeri restano
-      finche' non tocco di nuovo; riaccendo e il primo tocco non mostra niente perche'
-      sta solo togliendo il riquadro vecchio. Stessa causa, non due bug.
+    - il riquadro dei numeri va BUTTATO, non disattivato. Cambiare hovermode dice a
+      plotly di non aprirne di nuovi, ma quello gia' aperto col dito resta disegnato:
+      vive in un layer suo (il hoverlayer), e nessun aggiornamento della figura lo
+      cancella. Da qui i due sintomi gemelli - spengo e i numeri restano finche' non
+      tocco di nuovo; riaccendo e il primo tocco non mostra niente, perche' quel tocco
+      sta solo smaltendo il riquadro vecchio. Stessa causa, non due bug.
 
-      Percio' lo stato dell'interruttore entra sia nella key di Streamlit sia nelle
-      uid delle tracce: con uid diverse plotly non riconosce le tracce come le stesse
-      e rifa' il disegno da capo invece di ritoccarlo, e nel disegno da capo il
-      hoverlayer riparte vuoto.
+      Non bastano ne' la key di Streamlit ne' le uid delle tracce: sono entrambe cose
+      che fanno AGGIORNARE il grafico, e il nodo resta quello. L'unica leva che lo
+      uccide e' spostarlo. Streamlit identifica gli elementi dalla POSIZIONE
+      nell'albero, quindi il grafico vive in uno di due contenitori a seconda
+      dell'interruttore: quando l'interruttore cambia, l'elemento sparisce da un ramo
+      e nasce nell'altro, il nodo vecchio viene smontato e il riquadro muore con lui.
+      Il contenitore inutilizzato resta vuoto e non occupa spazio.
 
     G.HOVER va impostato PRIMA di costruire la figura: i grafici leggono la modalita'
     dal flag di modulo, non da un parametro.
     """
     on = st.toggle("Mostra i valori sul grafico", True, key="hv_" + nome)
     G.HOVER = "x unified" if on else False
-    fig = fn(*args)
-    for i, tr in enumerate(fig.data):
-        tr.uid = f"{nome}-{int(on)}-{i}"
-    st.plotly_chart(fig, width="stretch", config=CFG, key=f"g_{nome}_{int(on)}")
+    acceso, spento = st.container(), st.container()
+    with (acceso if on else spento):
+        st.plotly_chart(fn(*args), width="stretch", config=CFG,
+                        key=f"g_{nome}_{int(on)}")
 
 
 t1, t2, t4, t5 = st.tabs(["Organico", "Spesa", "Didattica", "Tabella"])
