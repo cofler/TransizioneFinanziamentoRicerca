@@ -68,18 +68,18 @@ p: dict = dict(base)
 
 st.sidebar.subheader("Obiettivi di spesa")
 p["herd_tgt"] = st.sidebar.slider(
-    "HERD - università (% PIL)", 0.30, 1.20, float(base["herd_tgt"]), 0.01, key="h" + k,
+    "HERD - università (% PIL)", 0.20, 1.50, float(base["herd_tgt"]), 0.01, key="h" + k,
     help="Spesa per ricerca del settore universitario. Oggi: 0,36%. L'obiettivo preimpostato 0,68% "
          "è la media degli HERD dei cinque paesi europei già sopra il 3% di spesa totale, riportata al 3%")
 p["goverd_tgt"] = st.sidebar.slider(
-    "GOVERD - enti pubblici (% PIL)", 0.10, 0.60, float(base["goverd_tgt"]), 0.01,
+    "GOVERD - enti pubblici (% PIL)", 0.05, 0.80, float(base["goverd_tgt"]), 0.01,
     key="g" + k,
     help="Spesa per ricerca degli enti pubblici. Oggi 0,21%. L'obiettivo preimpostato 0,23% "
          "è la media degli HERD dei cinque paesi europei già sopra il 3% di spesa totale, riportata al 3%")
 
 st.sidebar.subheader("Paghe e composizione")
 p["uplift_ppp"] = st.sidebar.slider(
-    "Moltiplicatore delle paghe", 1.00, 1.80, float(base["uplift_ppp"]), 0.01,
+    "Moltiplicatore delle paghe", 0.80, 2.00, float(base["uplift_ppp"]), 0.01,
     key="w" + k,
     help="1,00 = rimanere agli stipendi di oggi. 1,16 = raggiungere la media europea a parità di potere d'acquisto. "
          "1,65 = raggiungere la media dei cinque paesi che pagano di più. A spesa fissa, pagare di "
@@ -92,34 +92,47 @@ p["quota_ric_uni"] = st.sidebar.slider(
          "fa più ricerca (quota-ricerca 0,75 contro 0,50), quindi rende 2x FTE per "
          "euro. 0 = solo cattedre.")
 p["borsa_tgt"] = st.sidebar.slider(
-    "Borsa di dottorato (EUR/mese netti)", 1195.0, 2200.0, float(base["borsa_tgt"]),
+    "Borsa di dottorato (EUR/mese netti)", 1195.0, 3000.0, float(base["borsa_tgt"]),
     5.0, key="b" + k, help=f"Oggi {C.BORSA_OGGI:,.0f} EUR/mese netti.")
 
 st.sidebar.subheader("Carriera")
 p["precari_anni"] = st.sidebar.slider(
-    "Anni di postdoc", 2.0, 8.0, float(base["precari_anni"]), 0.5, key="pa" + k,
-    help="Permanenza media nel postdoc. Allungarla sposta lo stato stazionario: più "
-         "precari strutturali e ingresso in ruolo più tardi, quindi carriera di ruolo "
-         "più corta.")
+    "Anni di postdoc", 0.0, 10.0, float(base["precari_anni"]), 0.5, key="pa" + k,
+    help=f"Permanenza media nel postdoc a regime (oggi {C.PRECARI_ANNI_OGGI:g} anni; ci si "
+         "arriva lungo la rampa delle riforme). Allungarla sposta lo stato stazionario: "
+         "più precari strutturali e ingresso in ruolo più tardi, quindi carriera di "
+         "ruolo più corta. 0 = niente postdoc: dal dottorato si passa direttamente a RTT.")
 p["rtt_anni"] = st.sidebar.slider(
-    "Anni di RTT (tenure track)", 3, 8, int(base["rtt_anni"]), 1, key="rt" + k)
+    "Anni di RTT (tenure track)", 1, 10, int(base["rtt_anni"]), 1, key="rt" + k)
 p["p2_tgt"] = st.sidebar.slider(
-    "P2: quota di postdoc che entra in ruolo", 0.30, 1.00, float(base["p2_tgt"]), 0.05,
+    "P2: quota di postdoc che entra in ruolo", 0.01, 1.00, float(base["p2_tgt"]), 0.01,
     key="p2" + k,
     help="1,00 = nessun filtro dopo il dottorato: chi entra nel postdoc ha la carriera "
          "garantita. Sotto 1 il postdoc resta un passaggio selettivo.")
-p["stab_phd"] = st.sidebar.slider(
-    "Quota di dottori che resta in accademia", 0.10, 0.60, float(base["stab_phd"]), 0.01,
-    key="sp" + k,
-    help="Il filtro all'uscita dal dottorato. Insieme a P2 determina P1, cioè quanti "
-         "dottori proseguono.")
+# Il massimo segue P2: P1 = quota / P2 non supera 1, quindi oltre P2 il cursore non
+# avrebbe effetto. Il valore vive in session_state e non nell'argomento `value`, così
+# abbassare P2 lo riduce al nuovo massimo invece di riportarlo al default del preset.
+_sk = "sp" + k
+if _sk not in st.session_state:
+    st.session_state[_sk] = float(base["stab_phd"])
+st.session_state[_sk] = min(st.session_state[_sk], p["p2_tgt"])
+if p["p2_tgt"] > 0.01:
+    p["stab_phd"] = st.sidebar.slider(
+        "Quota di dottori che resta in accademia", 0.01, p["p2_tgt"], step=0.01, key=_sk,
+        help="Il filtro all'uscita dal dottorato. Insieme a P2 determina P1, cioè quanti "
+             "dottori proseguono (P1 = questa quota / P2). Non può superare P2: chi resta "
+             "in accademia è al più chi entra in ruolo dal postdoc.")
+else:
+    # a P2 minimo il cursore avrebbe min = max, che Streamlit rifiuta
+    p["stab_phd"] = p["p2_tgt"]
+    st.sidebar.caption("Quota di dottori che resta in accademia: 0,01 (non può superare P2).")
 p["ramp"] = st.sidebar.slider(
-    "Anni di rampa delle riforme", 3, 25, int(base["ramp"]), 1, key="rp" + k,
+    "Anni di rampa delle riforme", 1, 30, int(base["ramp"]), 1, key="rp" + k,
     help="In quanti anni le leve (paghe, P2, flusso di dottorandi) arrivano a regime. "
          "Nessuna si applica di colpo.")
 
 _ra = st.sidebar.slider(
-    "Anni per togliere la didattica al postdoc", 0, 30,
+    "Anni per togliere la didattica al postdoc", 0, 40,
     int(base["ramp_alpha_prec"] or 0), 1, key="ra" + k,
     help="Su quanti anni la quota-ricerca del postdoc sale da "
          f"{C.ALPHA_PREC_OGGI:.2f} a {C.ALPHA_PREC_TGT:.2f}, cioè quanto in fretta "
@@ -180,13 +193,13 @@ with st.sidebar.expander("Postdoc e incarichi di ricerca"):
         float(base["quota_incarico"]), 0.01, key="i1" + k,
         help="L'incarico di ricerca è esente IRPEF e costa meno: muove insieme platea "
              "esente, costo medio del postdoc e spesa.")
-    p["anni_incarico"] = st.slider("Anni di postdoc coperti dall'incarico di ricerca", 0.0, 6.0,
+    p["anni_incarico"] = st.slider("Anni di postdoc coperti dall'incarico di ricerca", 0.0, 10.0,
                                    float(base["anni_incarico"]), 0.5, key="i2" + k)
     p["costo_phd"] = st.number_input("Costo di un dottorando (EUR)", 0, 80_000,
                                      int(base["costo_phd"]), 500, key="i3" + k)
     p["phd_in_fte"] = st.checkbox("Conta i dottorandi negli FTE",
                                   bool(base["phd_in_fte"]), key="i4" + k)
-    p["ramp_phd"] = st.slider("Anni di rampa della borsa", 1, 20, int(base["ramp_phd"]),
+    p["ramp_phd"] = st.slider("Anni di rampa della borsa", 1, 30, int(base["ramp_phd"]),
                               1, key="i5" + k)
 
 with st.sidebar.expander("Stock di partenza e calibrazione"):
@@ -234,7 +247,7 @@ with st.sidebar.expander("Blocco degli scatti e attrezzature"):
 # solo a smorzare l'onda di pensionamenti nel mezzo della transizione.
 with st.sidebar.expander("Prepensionamento"):
     p["prepens_anni"] = st.slider(
-        "Anni di anticipo", 0, 8, int(base["prepens_anni"]), 1, key="pp" + k,
+        "Anni di anticipo", 0, 10, int(base["prepens_anni"]), 1, key="pp" + k,
         help="0 = leva spenta. Anticipa le uscite prima del picco dell'organico, per "
              "smorzare la gobba senza toccare lo stato stazionario.")
     p["prepens_ades"] = st.slider(

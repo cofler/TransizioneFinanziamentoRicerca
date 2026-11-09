@@ -53,13 +53,14 @@ def _p1_hist() -> float:
 
 def _uni_in0() -> float:
     """Flusso di postdoc UNIVERSITARI oggi, ricavato dallo STOCK osservato invece che
-    dal target di densità: un compartimento con permanenza media PRECARI_ANNI e stock
-    PRECARI_OGGI riceve PRECARI_OGGI/PRECARI_ANNI ingressi l'anno.
+    dal target di densità: un compartimento con permanenza media PRECARI_ANNI_OGGI e
+    stock PRECARI_OGGI riceve PRECARI_OGGI/PRECARI_ANNI_OGGI ingressi l'anno. La
+    durata è quella di OGGI, non l'obiettivo: è un dato, e la leva non lo deve toccare.
 
     Prima era il residuo che faceva quadrare la densità sul valore imposto; così il
     modello non poteva essere falsificato dai dati sull'organico. Adesso sì - e infatti
     lo scarto contro Eurostat esce dichiarato invece che riassorbito."""
-    return C.PRECARI_OGGI / C.PRECARI_ANNI
+    return C.PRECARI_OGGI / C.PRECARI_ANNI_OGGI
 
 
 def _epr_in0() -> float:
@@ -103,7 +104,7 @@ def _coorte(teste: float, eta_in: int) -> list[float]:
 def _init_stato(pd_in0: float) -> Stato:
     perm = _coorte(C.PERM_OGGI, eta_ruolo_in(C.PRECARI_ANNI))
     phd = [pd_in0] * C.D_PHD
-    precari = _uni_in0() * C.PRECARI_ANNI
+    precari = _uni_in0() * C.PRECARI_ANNI_OGGI
     rtt = [C.P2_HIST * _uni_in0()] * C.D_RTT
     epr_prec = [_epr_in0()] * C.D_PREC_EPR
     epr_ruolo = _coorte(C.EPR_RUOLO_OGGI, C.ETA_RUOLO_EPR)
@@ -119,7 +120,7 @@ def _precari_per_chiudere() -> float:
 
     Il legame è LINEARE e i precari entrano per DUE vie, non una: direttamente col
     proprio alpha, e indirettamente attraverso lo stock RTT che alimentano
-    (RTT = P2_HIST * precari/PRECARI_ANNI * D_RTT). Ignorare la seconda via
+    (RTT = P2_HIST * precari/PRECARI_ANNI_OGGI * D_RTT). Ignorare la seconda via
     sovrastimerebbe i precari necessari di circa il 4%.
 
     ATTENZIONE all'effetto collaterale: alzando i precari a P2_HIST invariato si alza
@@ -127,7 +128,7 @@ def _precari_per_chiudere() -> float:
     a meno dell'1,2%. Chiudere il gap qui costa quella verifica. L'alternativa è tenere
     l'RTT sul dato e lasciare che sia P2_HIST a scendere (vedi la diagnostica in main)."""
     fisso = C.PERM_OGGI * C.ALPHA["docente"] + C.RIC_UNI_RUOLO_OGGI * C.ALPHA["ric_uni"]
-    per_prec = C.ALPHA["precari"] + C.ALPHA["RTT"] * C.P2_HIST * C.D_RTT / C.PRECARI_ANNI
+    per_prec = C.ALPHA["precari"] + C.ALPHA["RTT"] * C.P2_HIST * C.D_RTT / C.PRECARI_ANNI_OGGI
     return max(0.0, (C.RIC_UNI_EUROSTAT - fisso) / per_prec)
 
 
@@ -674,7 +675,10 @@ def simula(dens_target: float, W: float = 1.0, q_ric: float = 0.0) -> pd.DataFra
                                soglie_epr=sgl_epr, soglie_ric=sgl_ric, anno=anno, t=k))
         pub = (sp["herd_mln"] + spe["goverd_mln"]) / C.PIL_MLN * 100   # HERD + GOVERD
         # --- flussi dell'anno (servono anche come diagnostica in tabella) ---
-        P2 = max(C.P2_MIN, _ramp(k, C.P2_HIST, C.P2_TGT))
+        # il pavimento P2_MIN non scavalca l'obiettivo: con P2_TGT sotto il pavimento
+        # la transizione restava inchiodata a P2_MIN per sempre, mentre il regime (e
+        # quindi il flusso d'ingresso) era calcolato su P2_TGT.
+        P2 = max(min(C.P2_MIN, C.P2_TGT), _ramp(k, C.P2_HIST, C.P2_TGT))
         pd_in = _ramp(k, pd_in0, pd_in_tgt)
         uni_in_k = _ramp(k, _uni_in0(), uni_in_tgt)
         # RAMPA solo il canale postdoc: il diretto è rimpiazzo di uno stock fermo,
@@ -701,8 +705,19 @@ def simula(dens_target: float, W: float = 1.0, q_ric: float = 0.0) -> pd.DataFra
         # precari EPR che passano al ruolo (la Madia è l'analogo EPR della tenure track).
         # Calcolati qui e non solo nell'avanzamento in fondo al ciclo, perchè entrano
         # nelle quote di sbocco che il ciclo scrive in tabella.
-        adv, ex = P2 / C.PRECARI_ANNI, (1 - P2) / C.PRECARI_ANNI
-        stabil = adv * s.precari                       # postdoc -> RTT
+        # Durata del postdoc dell'anno: rampa dal dato di oggi all'obiettivo. Sopra un
+        # anno esce 1/durata dello stock. Sotto, il passo annuale non basta: esce tutto
+        # lo stock, e degli ingressi dell'anno solo la frazione `pa` resta postdoc
+        # fino all'anno dopo, il resto transita subito. A durata 0 non c'è postdoc: i
+        # dottori passano direttamente a RTT (quota P2) o escono. Le due formule
+        # coincidono a durata 1, e a regime lo stock vale uni_in*pa come in kappa().
+        pa = _ramp(k, C.PRECARI_ANNI_OGGI, C.PRECARI_ANNI)
+        if pa >= 1:
+            stabil = P2 / pa * s.precari               # postdoc -> RTT
+            esce_pd = (1 - P2) / pa * s.precari
+        else:
+            in_uscita = s.precari + uni_in * (1 - pa)
+            stabil, esce_pd = P2 * in_uscita, (1 - P2) * in_uscita
         # il ruolo EPR si riempie da DUE canali: la Madia a valle del contratto di
         # ricerca, e il concorso diretto che salta il postdoc (epr_in_dir, già calcolato
         # coi flussi qui sopra perchè entra nelle quote di sbocco in tabella).
@@ -882,10 +897,10 @@ def simula(dens_target: float, W: float = 1.0, q_ric: float = 0.0) -> pd.DataFra
                                      / 1000 - (rf["retro"] - base_r["retro"]) / 1e9),
         })
         # --- avanzamento di un anno ---
-        # (adv, ex, stabil, epr_stab sono già stati calcolati sopra, coi flussi)
+        # (stabil, esce_pd, epr_stab sono già stati calcolati sopra, coi flussi)
         rtt_out = s.rtt[-1] * C.S_RTT_PERM             # RTT -> ruolo
         s.phd = [pd_in] + s.phd[:-1]
-        s.precari = s.precari + uni_in - stabil - ex * s.precari
+        s.precari = s.precari + uni_in - stabil - esce_pd
         s.rtt = [stabil] + s.rtt[:-1]
         qr = _ramp(k, 0.0, C.QUOTA_RIC_UNI)            # conversione per ricambio
         s.perm = [rtt_out * (1 - qr)] + s.perm[:-1]   # età 67 -> pensione

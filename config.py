@@ -290,6 +290,13 @@ P1 = min(1.0, STAB_PHD / P2_TGT)
 P2_HIST = 0.10
 P2_MIN = 0.50
 PRECARI_ANNI = 5.0
+# Durata del postdoc OGGI, distinta dall'obiettivo PRECARI_ANNI. E' quella con cui si
+# ricostruiscono dagli stock osservati il flusso di postdoc di oggi, l'RTT di partenza
+# e lo stock che chiude il gap Eurostat: un dato, non una leva. Quando PRECARI_ANNI era
+# l'unico parametro, muovere la leva riscriveva anche il 2026 (a 1 anno il flusso di
+# oggi diventava l'intero stock, e l'RTT iniziale quadruplicava). La durata dell'anno
+# va da qui a PRECARI_ANNI lungo RAMP, come le altre leve di carriera.
+PRECARI_ANNI_OGGI = 5.0
 # ORA che PRECARI_ANNI esiste, il costo medio del postdoc e' calcolabile. main() lo
 # ricalcola dopo la CLI, perche' sia --quota-incarico sia --precari-anni lo spostano.
 COSTO["precari"] = costo_precari()
