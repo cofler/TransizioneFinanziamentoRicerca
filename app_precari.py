@@ -20,7 +20,7 @@ import streamlit as st
 import stock_flow_epr as epr
 import stock_flow_precari as SF
 
-st.set_page_config(page_title="Precari della ricerca: stock e flussi", page_icon="📉",
+st.set_page_config(page_title="Il precariato nella ricerca pubblica", page_icon="📉",
                    layout="wide", initial_sidebar_state="collapsed")
 
 COL = {"usciti": "#B3574A", "stabilizzati": "#5BA88F", "rimasti": "#E8A33D",
@@ -72,29 +72,38 @@ fonte = {"monitoraggio": "monitoraggio giornaliero", "repo dati": "monitoraggio 
 # =====================================================================================
 # CORPO
 # =====================================================================================
-st.title("Precari della ricerca pubblica: chi è uscito, chi è entrato in tenure track")
+st.title("Il precariato nella ricerca pubblica: dati storici e monitoraggio")
 st.markdown(f"Università ed enti pubblici di ricerca, **dicembre 2023 → oggi ({d_oggi})**. "
             "Borse post-laurea e dottorandi esclusi.")
 st.caption(f"Stock di oggi delle università: {fonte} di Cerca Università (MUR), mediana degli "
-           f"ultimi {len(mon['giorni'])} giorni validi fino al {d_oggi}. "
-           "Ipotesi del modello in fondo alla pagina.")
+           f"ultimi {len(mon['giorni'])} giorni validi fino al {d_oggi}.")
 
 st.subheader("Sistema complessivo")
 m = st.columns(4)
-m[0].metric("Precari passati per il sistema", it(round(sis["passati"], -2)),
+m[0].metric("Hanno avuto una posizione precaria", it(round(sis["passati"], -2)),
             help="Precari presenti a dicembre 2023 più tutti quelli entrati dopo.")
-m[1].metric("Usciti dal sistema", it(round(sis["usciti"], -2)), f"{SF.pct(q['usciti'])} dei passati",
+m[1].metric("Usciti dal sistema", it(round(sis["usciti"], -2)), f"{SF.pct(q['usciti'])} di chi ha avuto una posizione precaria",
             delta_color="off")
 m[2].metric("Entrati in tenure track o in ruolo", it(round(sis["stabilizzati"], -2)),
-            f"{SF.pct(q['stabilizzati'])} dei passati", delta_color="off")
+            f"{SF.pct(q['stabilizzati'])} di chi ha avuto una posizione precaria", delta_color="off")
 m[3].metric("Ancora precari oggi", it(round(sis["rimasti"], -2)),
-            f"{SF.pct(q['rimasti'])} dei passati", delta_color="off",
+            f"{SF.pct(q['rimasti'])} di chi ha avuto una posizione precaria", delta_color="off",
             help="Esclusi RTDb, RTT e borsisti degli enti.")
 m = st.columns(4)
 m[0].metric("Usciti dalle università", it(round(c["usciti"], -2)),
-            f"{SF.pct(c['quota_usciti_su_chi_lascia'])} di chi ha lasciato", delta_color="off")
+            f"{SF.pct(c['quota_usciti_su_chi_lascia'])} di chi non ha più una posizione precaria",
+            delta_color="off",
+            help=f"Dal 2023 hanno lasciato una posizione precaria universitaria "
+                 f"{it(round(c['usciti'] + c['stabilizzati'], -2))} persone: "
+                 f"{it(round(c['usciti'], -2))} sono uscite dal sistema, "
+                 f"{it(round(c['stabilizzati'], -2))} sono passate a RTDb o RTT.")
 m[1].metric("Usciti dagli enti", it(round(e["usciti_teste"], -2)),
-            f"{SF.pct(e['quota_usciti_su_chi_lascia'])} di chi ha lasciato", delta_color="off")
+            f"{SF.pct(e['quota_usciti_su_chi_lascia'])} di chi non ha più una posizione precaria",
+            delta_color="off",
+            help=f"Dal 2023 hanno lasciato una posizione precaria negli enti "
+                 f"{it(round(e['usciti_teste'] + e['in_ruolo'], -2))} persone: "
+                 f"{it(round(e['usciti_teste'], -2))} sono uscite, "
+                 f"{it(round(e['in_ruolo'], -2))} sono entrate in ruolo.")
 m[2].metric("Enti: a rischio entro il 2027", it(round(e["a_rischio_2027_teste"], -2)),
             help="Distanza tra lo stock di fine 2026 e lo scenario 2027 del Conto annuale.")
 m[3].metric("Figure a esaurimento oggi", it(round(esaurimento, -2)),
@@ -128,7 +137,7 @@ with t1:
     w.update_layout(showlegend=False)
     st.plotly_chart(w, width="stretch", config=CFG)
 
-    b = _fig("Esiti dei precari passati per il sistema", 360)
+    b = _fig("Esiti di chi ha avuto una posizione precaria dal 2023", 360)
     ambiti = ["Università", "Enti", "Totale"]
     dati = {"usciti": [c["usciti"], e["usciti_teste"], sis["usciti"]],
             "stabilizzati": [c["stabilizzati"], e["in_ruolo"], sis["stabilizzati"]],
@@ -202,24 +211,51 @@ with t3:
     st.plotly_chart(ef, width="stretch", config=CFG)
 
 with t4:
-    righe = [("Università", SF.VOCI[k_], c[k_]) for k_ in SF.VOCI if not k_.startswith("quota")]
-    righe += [("Enti", SF.EVOCI[k_], e[k_]) for k_ in SF.EVOCI
-              if not k_.startswith(("quota", "borsisti"))]
-    righe += [("Sistema", "Passati per il sistema", sis["passati"]),
-              ("Sistema", "Usciti dal sistema", sis["usciti"]),
-              ("Sistema", "Entrati in tenure track o in ruolo", sis["stabilizzati"]),
-              ("Sistema", "Ancora precari oggi", sis["rimasti"])]
-    tab = pd.DataFrame(righe, columns=["Ambito", "Voce", "Persone"])
-    tab["Persone"] = tab["Persone"].astype(float).round(0).astype(int)
-    st.dataframe(tab, width="stretch", hide_index=True, height=620,
-                 column_config={"Persone": st.column_config.NumberColumn(format="localized")})
-    st.download_button("Scarica la tabella (CSV)", tab.to_csv(index=False).encode("utf-8-sig"),
-                       "precari_stock_flow.csv", "text/csv")
-    oggi_tab = pd.DataFrame([(k_, v) for k_, v in mon["oggi"].items()], columns=["Figura", "Persone oggi"])
-    st.markdown(f"**Stock di oggi nelle università** (mediana dal {SF.data_it(pd.Timestamp(mon['giorni'][0]))} "
-                f"al {d_oggi})")
-    st.dataframe(oggi_tab, hide_index=True,
-                 column_config={"Persone oggi": st.column_config.NumberColumn(format="localized")})
+    st.markdown("Solo dati osservati, così come escono dalle fonti: nessuna stima del modello, "
+                "nessuna media. Le cifre su usciti e stabilizzati sono stime e stanno nelle altre schede.")
+    NUM = st.column_config.NumberColumn(format="localized")
+
+    def _tabella(titolo, df, nota=None):
+        st.markdown(f"**{titolo}**")
+        st.dataframe(df, hide_index=True, width="stretch",
+                     column_config={c_: NUM for c_ in df.columns if c_ != "Figura"})
+        if nota:
+            st.caption(nota)
+
+    ultimo = mon["serie"].iloc[-1]
+    d_ult = SF.data_it(pd.Timestamp(mon["serie"].index[-1]))
+    _tabella(f"Università, monitoraggio di Cerca Università: ultimo giorno rilevato ({d_ult})",
+             pd.DataFrame({"Figura": ultimo.index, "Persone": ultimo.astype(int).values}),
+             "Somma ateneo per ateneo di cercauniversita.mur.gov.it; solo giorni rilevati per tutti gli atenei.")
+    serie_csv = mon["serie"].rename_axis("data").to_csv().encode("utf-8-sig")
+    st.download_button("Scarica la serie giornaliera completa (CSV)", serie_csv,
+                       "monitoraggio_giornaliero.csv", "text/csv")
+
+    anni_m = [a_ for a_ in (2022, 2023, 2024) if a_ in mur.index]
+    _tabella("Università, serie MUR (personale al 31 dicembre)",
+             pd.DataFrame([{"Figura": f, **{str(a_): mur.loc[a_, col] for a_ in anni_m}}
+                           for f, col in (("Assegnisti", "Assegni"), ("RTDa", "RTDa"),
+                                          ("RTDb", "RTDb"), ("RTT", "RTT"))]).astype(
+                 {str(a_): "Int64" for a_ in anni_m}))
+
+    nomi_xl = {"dic22": "dic 2022", "dic23": "dic 2023", "dic24": "dic 2024", "dic25": "dic 2025"}
+    _tabella("Università, rilevazioni su Cerca Università dell'Excel \"La grande espulsione\"",
+             pd.DataFrame([{"Figura": f, **{nomi_xl[c_]: xl[f][c_] for c_ in nomi_xl}}
+                           for f in ("RTDa", "RTDb", "RTT")]).astype({v: "Int64" for v in nomi_xl.values()}))
+    nomi_ass = {"mag25": "mag 2025", "ago25": "ago 2025", "set25": "set 2025", "ott25": "ott 2025",
+                "nov25": "nov 2025", "dic25": "dic 2025", "feb26": "feb 2026"}
+    _tabella("Università, assegni di ricerca dell'Excel (somma delle 14 aree CUN)",
+             pd.DataFrame([{"Figura": "Assegni di ricerca", **{v: xl["Assegni di ricerca"][k_]
+                                                             for k_, v in nomi_ass.items()}}]),
+             "Esclusi i valori di aprile 2026 (incoerente con il resto della serie) e di novembre "
+             "2026 (calcolato per differenza, sottostima gli assegnisti).")
+
+    _tabella("Enti pubblici di ricerca, Conto annuale (unità annue, non persone)",
+             pd.DataFrame([{"Figura": "Assegnisti", "2023": epr.ASS[2023], "2024": epr.ASS[2024]},
+                           {"Figura": "Ricercatori e tecnologi a tempo determinato",
+                            "2023": epr.TD[2023], "2024": epr.TD[2024]}]),
+             f"Assunti in ruolo nel 2024 come ricercatori e tecnologi: {it(hires)} persone "
+             "(tabella assunti e cessati 2024). Borsisti non rilevati.")
 
 # =====================================================================================
 # IPOTESI E METODO (in fondo, sempre visibili)
@@ -302,7 +338,7 @@ for col, titolo, lista, val in ((col_u, "Università", IPOTESI_U, pu), (col_e, "
 st.markdown(f"""
 **Quanto sono solidi i numeri.** L'ipotesi più incerta è la permanenza tra gli assegni: con
 {it(SF.PARAM['D_A'][0])} anni invece di {it(pu['D_A'])} gli usciti sarebbero il
-{SF.pct(q_usc[1])} dei passati, con {it(SF.PARAM['D_A'][2])} anni il {SF.pct(q_usc[0])}
+{SF.pct(q_usc[1])} di chi ha avuto una posizione precaria, con {it(SF.PARAM['D_A'][2])} anni il {SF.pct(q_usc[0])}
 (stima centrale: {SF.pct(q['usciti'])}). Indipendentemente dalle ipotesi, dal picco di
 dicembre 2024 sono usciti almeno {it(round(lb['usciti_min'], -2))} precari universitari.
 
