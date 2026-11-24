@@ -69,6 +69,32 @@ migliorare, e il test di validazione sugli RTT, che sbaglia del 31,5%.
 Tutti i valori sono in EUR2026 costanti, a PIL fermo. I costi di scenario sono
 aggiuntivi rispetto al 2026.
 
+## Stock e flussi dei precari (2023 → oggi)
+
+Modello separato, che non tocca la simulazione: stima quanti precari (RTDa, assegnisti,
+contratti e incarichi postdoc; università ed enti) sono passati in tenure track o in
+ruolo e quanti sono usciti dal sistema dal dicembre 2023 a oggi.
+
+```bash
+python stock_flow_precari.py          # pipeline: output/precari_stock_flow.csv e .md
+streamlit run app_precari.py          # webapp con i parametri sui cursori
+python controllo_aree_assegnisti.py   # (facoltativo) controllo su Cerca Università
+```
+
+| File | Ruolo |
+|---|---|
+| `stock_flow_precari.py` | modello università, sistema complessivo, CSV e report |
+| `stock_flow_epr.py` | modello enti pubblici di ricerca (dati Conto annuale) |
+| `app_precari.py` | webapp Streamlit sopra gli stessi due moduli |
+| `controllo_aree_assegnisti.py` | verifica perché le somme per area CUN sottostimano gli assegnisti |
+
+Lo stock di oggi delle università viene dal monitoraggio giornaliero di Cerca Università
+(`../NumeroRicercatoriEmail/nazionale/ricercatori_nazionale.csv`, task pianificato
+"MonitoraggioPrecari"). Ogni esecuzione della pipeline ne salva la serie aggregata in
+`input/monitoraggio_snapshot.csv`: dove il monitoraggio non è raggiungibile (webapp in
+cloud) si usa lo snapshot. Lo storico viene da `input/La grande espulsione_2.xlsx` e dalla
+serie MUR; gli enti dai grafici del Conto annuale e da `input/AssuntiCessati2024.xlsx`.
+
 ## Verifica
 
 Dopo una modifica al modello, il test che conta è che la CLI produca gli stessi CSV:

@@ -12,6 +12,7 @@ plotly>=5.20,<7
 # --- modello ------------------------------------------------------------------
 pandas>=2.0,<3
 numpy>=1.24,<3
+openpyxl>=3.1,<4   # stock_flow_precari / app_precari: lettura degli Excel in input/
 
 # --- solo per la CLI: grafici in PNG di piano_transizione ----------------------
 matplotlib>=3.7,<4
