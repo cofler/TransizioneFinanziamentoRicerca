@@ -84,26 +84,23 @@ m[0].metric("Hanno avuto una posizione precaria", it(round(sis["passati"], -2)),
             help="Precari presenti a dicembre 2023 più tutti quelli entrati dopo.")
 m[1].metric("Usciti dal sistema", it(round(sis["usciti"], -2)), f"{SF.pct(q['usciti'])} di chi ha avuto una posizione precaria",
             delta_color="off")
-m[2].metric("Entrati in tenure track o in ruolo", it(round(sis["stabilizzati"], -2)),
+m[2].metric("Stabilizzati (RTDb, RTT o ruolo)", it(round(sis["stabilizzati"], -2)),
             f"{SF.pct(q['stabilizzati'])} di chi ha avuto una posizione precaria", delta_color="off")
 m[3].metric("Ancora precari oggi", it(round(sis["rimasti"], -2)),
             f"{SF.pct(q['rimasti'])} di chi ha avuto una posizione precaria", delta_color="off",
             help="Esclusi RTDb, RTT e borsisti degli enti.")
 m = st.columns(4)
-m[0].metric("Usciti dalle università", it(round(c["usciti"], -2)),
-            f"{SF.pct(c['quota_usciti_su_chi_lascia'])} di chi non ha più una posizione precaria",
-            delta_color="off",
-            help=f"Dal 2023 hanno lasciato una posizione precaria universitaria "
-                 f"{it(round(c['usciti'] + c['stabilizzati'], -2))} persone: "
+qu, qe = c["quota_usciti_su_chi_lascia"], e["quota_usciti_su_chi_lascia"]
+m[0].metric("Non più precari: università", it(round(c["usciti"] + c["stabilizzati"], -2)),
+            f"{SF.pct(qu)} usciti dal sistema, {SF.pct(1 - qu)} stabilizzati", delta_color="off",
+            help=f"Persone che dal 2023 non hanno più una posizione precaria universitaria: "
                  f"{it(round(c['usciti'], -2))} sono uscite dal sistema, "
-                 f"{it(round(c['stabilizzati'], -2))} sono passate a RTDb o RTT.")
-m[1].metric("Usciti dagli enti", it(round(e["usciti_teste"], -2)),
-            f"{SF.pct(e['quota_usciti_su_chi_lascia'])} di chi non ha più una posizione precaria",
-            delta_color="off",
-            help=f"Dal 2023 hanno lasciato una posizione precaria negli enti "
-                 f"{it(round(e['usciti_teste'] + e['in_ruolo'], -2))} persone: "
-                 f"{it(round(e['usciti_teste'], -2))} sono uscite, "
-                 f"{it(round(e['in_ruolo'], -2))} sono entrate in ruolo.")
+                 f"{it(round(c['stabilizzati'], -2))} sono state stabilizzate (RTDb o RTT).")
+m[1].metric("Non più precari: enti", it(round(e["usciti_teste"] + e["in_ruolo"], -2)),
+            f"{SF.pct(qe)} usciti dal sistema, {SF.pct(1 - qe)} stabilizzati", delta_color="off",
+            help=f"Persone che dal 2023 non hanno più una posizione precaria negli enti: "
+                 f"{it(round(e['usciti_teste'], -2))} sono uscite dal sistema, "
+                 f"{it(round(e['in_ruolo'], -2))} sono state stabilizzate (in ruolo).")
 m[2].metric("Enti: a rischio entro il 2027", it(round(e["a_rischio_2027_teste"], -2)),
             help="Distanza tra lo stock di fine 2026 e lo scenario 2027 del Conto annuale.")
 m[3].metric("Figure a esaurimento oggi", it(round(esaurimento, -2)),
@@ -122,11 +119,11 @@ t1, t2, t3, t4 = st.tabs(["Esiti", "Andamento", "Enti", "Tabella"])
 
 with t1:
     st.markdown("Da dove si parte e dove si arriva: lo stock del 2023 più i nuovi ingressi, "
-                "meno chi è passato in tenure track e chi è uscito, dà lo stock di oggi.")
+                "meno gli stabilizzati e gli usciti dal sistema, dà lo stock di oggi.")
     w = _fig("Università: dal 2023 a oggi")
     voci = [("Precari dic 2023", P23, "absolute"), ("Nuovi ingressi", c["ingressi_esterni"], "relative"),
-            ("Passati a RTDb", -c["RTDb_in"], "relative"),
-            ("Passati a RTT", -(c["RTT_da_RTDa"] + c["RTT_da_PD"]), "relative"),
+            ("Stabilizzati in RTDb", -c["RTDb_in"], "relative"),
+            ("Stabilizzati in RTT", -(c["RTT_da_RTDa"] + c["RTT_da_PD"]), "relative"),
             ("Usciti dal sistema", -c["usciti"], "relative"), ("Precari oggi", P_oggi, "total")]
     w.add_trace(go.Waterfall(x=[v[0] for v in voci], y=[v[1] for v in voci],
                              measure=[v[2] for v in voci],
@@ -142,7 +139,7 @@ with t1:
     dati = {"usciti": [c["usciti"], e["usciti_teste"], sis["usciti"]],
             "stabilizzati": [c["stabilizzati"], e["in_ruolo"], sis["stabilizzati"]],
             "rimasti": [P_oggi, e["P26_teste"], sis["rimasti"]]}
-    nomi = {"usciti": "Usciti dal sistema", "stabilizzati": "Tenure track o ruolo",
+    nomi = {"usciti": "Usciti dal sistema", "stabilizzati": "Stabilizzati",
             "rimasti": "Ancora precari"}
     for k_, vals in dati.items():
         b.add_trace(go.Bar(y=ambiti, x=vals, name=nomi[k_], orientation="h",
@@ -151,7 +148,7 @@ with t1:
     b.update_layout(barmode="stack", yaxis=dict(autorange="reversed"))
     st.plotly_chart(b, width="stretch", config=CFG)
     st.caption(f"Cifra prudente: dal picco di dicembre 2024 ({it(lb['P_dic24'])} precari "
-               f"universitari) sono usciti almeno {it(round(lb['usciti_min'], -2))} persone in "
+               f"universitari) sono usciti dal sistema almeno {it(round(lb['usciti_min'], -2))} persone in "
                f"{s['mesi_dal_picco']} mesi, anche assumendo zero nuovi ingressi.")
 
 with t2:
@@ -194,8 +191,7 @@ with t2:
     st.caption(f"Monitoraggio: tratteggio = dato giornaliero di Cerca Università (solo i giorni "
                f"rilevati per tutti gli atenei); linea piena = mediana degli ultimi "
                f"{SF.FINESTRA_GIORNI} giorni validi, che assorbe i cali spuri di un singolo giorno "
-               "ed è il valore usato dal modello. Le somme per area CUN dell'Excel sottostimano gli "
-               "assegnisti, perché circa 1.350 contratti e incarichi non hanno un'area CUN.")
+               "ed è il valore usato dal modello.")
 
 with t3:
     st.markdown("Assegnisti e ricercatori/tecnologi a tempo determinato negli enti, in persone "
@@ -212,7 +208,7 @@ with t3:
 
 with t4:
     st.markdown("Solo dati osservati, così come escono dalle fonti: nessuna stima del modello, "
-                "nessuna media. Le cifre su usciti e stabilizzati sono stime e stanno nelle altre schede.")
+                "nessuna media. Le cifre su usciti dal sistema e stabilizzati sono stime e stanno nelle altre schede.")
     NUM = st.column_config.NumberColumn(format="localized")
 
     def _tabella(titolo, df, nota=None):
@@ -265,8 +261,8 @@ st.header("Ipotesi e metodo")
 
 st.markdown(f"""
 **Identità di bilancio.** Per il pool precario (RTDa, assegnisti, contratti e incarichi):
-usciti = stock di dicembre 2023 + nuovi ingressi − stock di oggi − passaggi a RTDb/RTT (o in
-ruolo, negli enti). I passaggi interni (assegno → RTDa, rinnovi, assegno → contratto) si
+usciti dal sistema = stock di dicembre 2023 + nuovi ingressi − stock di oggi − stabilizzati
+(passati a RTDb o RTT nelle università, in ruolo negli enti). I passaggi interni (assegno → RTDa, rinnovi, assegno → contratto) si
 annullano nel totale e servono solo a ripartire i flussi tra le figure.
 
 **Dati osservati.** Stock di dicembre 2023 e 2024 (MUR ed Excel "La grande espulsione"),
@@ -301,7 +297,7 @@ IPOTESI_U = [
      "Percorso tipico assegno → RTDa; il resto entra da dottorato o dall'esterno."),
     ("old_a", "Quota degli RTDa di oggi entrati prima del 2024",
      "Contratti prorogati (3 + 2 anni) ancora in corso."),
-    ("early_a", "Quota di nuovi RTDa già usciti in anticipo",
+    ("early_a", "Quota di nuovi RTDa che hanno lasciato il contratto in anticipo",
      "Passaggi anticipati, soprattutto verso RTT."),
     ("early_b", "Quota di nuovi RTDb già passati ad associato",
      "Valutazione anticipata, possibile ma rara entro i primi anni."),
@@ -309,7 +305,7 @@ IPOTESI_U = [
      "Le nuove figure post-riforma assorbono soprattutto chi era già assegnista."),
     ("n_Ra", "Quota di contratti e incarichi andati a ex RTDa",
      "RTDa scaduti che restano con un contratto; il resto (15%) sono persone nuove."),
-    ("T_out", "RTT già usciti",
+    ("T_out", "RTT che hanno già lasciato la posizione",
      "Pochi casi in 3 anni: passaggio anticipato ad associato o dimissioni."),
 ]
 IPOTESI_E = [
@@ -337,10 +333,10 @@ for col, titolo, lista, val in ((col_u, "Università", IPOTESI_U, pu), (col_e, "
 
 st.markdown(f"""
 **Quanto sono solidi i numeri.** L'ipotesi più incerta è la permanenza tra gli assegni: con
-{it(SF.PARAM['D_A'][0])} anni invece di {it(pu['D_A'])} gli usciti sarebbero il
+{it(SF.PARAM['D_A'][0])} anni invece di {it(pu['D_A'])} gli usciti dal sistema sarebbero il
 {SF.pct(q_usc[1])} di chi ha avuto una posizione precaria, con {it(SF.PARAM['D_A'][2])} anni il {SF.pct(q_usc[0])}
 (stima centrale: {SF.pct(q['usciti'])}). Indipendentemente dalle ipotesi, dal picco di
-dicembre 2024 sono usciti almeno {it(round(lb['usciti_min'], -2))} precari universitari.
+dicembre 2024 sono usciti dal sistema almeno {it(round(lb['usciti_min'], -2))} precari universitari.
 
 **Esclusi:** borse post-laurea, dottorandi, borsisti degli enti.
 """)
